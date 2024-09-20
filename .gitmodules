@@ -7,3 +7,9 @@
 [submodule "ad-Lightwand"]
 	path = ad-Lightwand
 	url = https://github.com/Pythm/ad-Lightwand.git
+[submodule "apps/ad-Lightwand"]
+	path = apps/ad-Lightwand
+	url = https://github.com/Pythm/ad-Lightwand.git
+[submodule "apps/ad-ModeManagement"]
+	path = apps/ad-ModeManagement
+	url = https://github.com/Pythm/ad-ModeManagement.git
