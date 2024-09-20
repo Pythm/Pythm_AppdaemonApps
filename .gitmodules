@@ -4,3 +4,6 @@
 [submodule "apps/ad-ElectricalManagement"]
 	path = apps/ad-ElectricalManagement
 	url = https://github.com/Pythm/ad-ElectricalManagement.git
+[submodule "ad-Lightwand"]
+	path = ad-Lightwand
+	url = https://github.com/Pythm/ad-Lightwand.git
