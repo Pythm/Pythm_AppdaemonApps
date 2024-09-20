@@ -1,0 +1,6 @@
+[submodule "apps/ad-ClimateCommander"]
+	path = apps/ad-ClimateCommander
+	url = https://github.com/Pythm/ad-ClimateCommander.git
+[submodule "apps/ad-ElectricalManagement"]
+	path = apps/ad-ElectricalManagement
+	url = https://github.com/Pythm/ad-ElectricalManagement.git
