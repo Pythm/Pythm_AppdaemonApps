@@ -1,8 +1,5 @@
 # Pythm's Appdaemon Apps
 
-## Usage
-# Pythm's Appdaemon Apps
-
 Install with git clone:
 With terminal cd into your Appdaemon apps folder. This should be something like: /docker/appdaemon/conf/apps
 Git clone with: git clone https://github.com/Pythm/Pythm_AppdaemonApps.git
