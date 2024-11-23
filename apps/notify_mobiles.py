@@ -70,7 +70,7 @@ class Notify_Mobiles(hass.Hass):
         if 'notify_reciever' in message:
             for r in message['notify_reciever']:
                 self.send_notification(
-                    message = f"{message['notify_message']} - {self.get_state(entity)}",
+                    message = f"{message['notify_message']} {self.get_state(entity)}",
                     message_title = message['notify_title'],
                     message_recipient = r
                 )
