@@ -5,7 +5,7 @@ Turns on/off a switch with an ios.action_fired and checks if it is turned off at
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 import appdaemon.plugins.hass.hassapi as hass
 import datetime
@@ -36,7 +36,10 @@ class EspressoMachine(hass.Hass):
                 actionName = self.ios_toggle    
             )
 
-    def set_start_up_time(self, entity, attribute, old, new, kwargs):
+
+    def set_start_up_time(self, entity, attribute, old, new, kwargs) -> None:
+        """ Listens for changes to a HA input_datetime helper and sets time to turn on coffee machine.
+        """
         if self.handler != None:
             if self.timer_running(self.handler):
                 try:
@@ -47,20 +50,34 @@ class EspressoMachine(hass.Hass):
         if self.get_state(self.coffee_timer) != '00:00:00':
             self.handler = self.run_daily(self.start_up_coffee, self.get_state(self.coffee_timer))
 
-    def start_up_coffee(self, kwargs):
+
+    def start_up_coffee(self, kwargs) -> None:
+        """ Turns on coffee machine.
+        """
         if (
             self.get_state(self.coffee_timer) != '00:00:00'
             and self.get_state(self.espresso_machine) == 'off'
         ):
-            self.call_service('switch/turn_on', entity_id = self.espresso_machine )
+            self.turn_on(self.espresso_machine)
 
-    def ios_event(self, event_name, data, kwargs):
+
+    def ios_event(self, event_name, data, kwargs) -> None:
+        """ Turns on coffee machine if off or turns off is already on.
+        """
         if self.get_state(self.espresso_machine) == 'off':
             if self.now_is_between('06:00:00', '14:30:00'):
                 self.call_service('switch/turn_on', entity_id = self.espresso_machine )
         elif self.get_state(self.espresso_machine) == 'on':
             self.call_service('switch/turn_off', entity_id = self.espresso_machine )
 
-    def checkIfStillOn(self, kwargs):
+
+    def checkIfStillOn(self, kwargs) -> None:
+        """ Sends notification if coffee machine is still on.
+        """
         if self.get_state(self.espresso_machine) == 'on':
-            self.notify_app.send_notification(self.notify_message ,self.notify_title , self.notify_reciever)
+            for r in self.notify_reciever:
+                self.notify_app.send_notification(
+                    message = self.notify_message,
+                    message_title = self.notify_title,
+                    message_recipient = r
+                )

@@ -1,8 +1,8 @@
-""" Stop vacation mode at given time or precense change.
+""" Stop vacation mode at given time or tracker/presence change.
 
     @Pythm / https://github.com/Pythm
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -20,7 +20,9 @@ class endVacation(hass.Hass):
         self.vacation_ends = self.args.get('vacation_ends', None)
         if self.vacation_ends:
             if self.datetime() < self.parse_datetime(self.get_state(self.vacation_ends)):
-                self.vacation_handle = self.run_at(self.endVacation, self.parse_datetime(self.get_state(self.vacation_ends)))
+                self.vacation_handle = self.run_at(self.endVacation,
+                    self.parse_datetime(self.get_state(self.vacation_ends))
+                )
             self.listen_state(self.endVacationAt, self.vacation_ends, duration = 60)
 
         for switch in self.vacation_switch:
@@ -38,11 +40,9 @@ class endVacation(hass.Hass):
                 )
 
 
-    def presenceChange(self, entity, attribute, old, new, kwargs):
-        self.run_in(self.endVacation, 1)
-
-
-    def onVacation(self, entity, attribute, old, new, kwargs):
+    def onVacation(self, entity, attribute, old, new, kwargs) -> None:
+        """ Starts listening for presence change to end vacation when new state is home
+        """
         for person in self.presence:
             person_handler = self.listen_state(self.presenceChange, person,
                 new = 'home'
@@ -52,7 +52,15 @@ class endVacation(hass.Hass):
             )
 
 
-    def endVacationAt(self, entity, attribute, old, new, kwargs):
+    def presenceChange(self, entity, attribute, old, new, kwargs) -> None:
+        """ Listens for presence change and ends vacations if new state is home
+        """
+        self.run_in(self.endVacation, 1)
+
+
+    def endVacationAt(self, entity, attribute, old, new, kwargs) -> None:
+        """ Updates time for when to end vacation
+        """
         if self.datetime() < self.parse_datetime(self.get_state(self.vacation_ends)):
             if self.vacation_handle != None:
                 if self.timer_running(self.vacation_handle):
@@ -66,7 +74,9 @@ class endVacation(hass.Hass):
             self.vacation_handle = self.run_at(self.endVacation, self.parse_datetime(self.get_state(self.vacation_ends)))
 
 
-    def endVacation(self, kwargs):
+    def endVacation(self, kwargs) -> None:
+        """ Ends vacation by turning off switch
+        """
         for switch in self.vacation_switch:
             self.turn_off(switch)
 
