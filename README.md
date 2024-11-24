@@ -118,3 +118,24 @@ Set up people and their devices with recipients. If tracker is provided it will 
 Siri messages or ios events will do a mode change event and also send notifications.
 
 Notify state change will listen for state change and notify you
+
+### rain_notify
+
+```yaml
+notify_on_rain:
+  module: rain_notify
+  class: Rain_Notify
+  dependencies:
+    - notify_mobiles
+  log: info_log
+  rain_sensor:
+    - sensor.netatmo_regnsensor_rain
+  rain_amount: 0.1
+  anemometer:
+    - sensor.netatmo_anemometer_wind_strength
+  anemometer_speed: 20
+  windowsensors:
+    - binary_sensor.window_door_is_open
+  notify_reciever:
+    - Anders
+```
