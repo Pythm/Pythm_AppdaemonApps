@@ -30,7 +30,9 @@ class Rain_Notify(hass.Hass):
             self.listen_state(self.check_if_windows_needs_to_be_closed_wind, sensor)
 
 
-    def windowsopened(self):
+    def windowsopened(self) -> int:
+        """ Returns number of opened windows and creates a list of those open.
+        """
         opened = 0
         self.windows_needed_to_be_closed = []
         for window in self.windowsensors:
@@ -40,7 +42,9 @@ class Rain_Notify(hass.Hass):
         return opened
 
 
-    def check_if_windows_needs_to_be_closed_rain(self, entity, attribute, old, new, kwargs):
+    def check_if_windows_needs_to_be_closed_rain(self, entity, attribute, old, new, kwargs) -> None:
+        """ Reacts to rain sensor update and checks if windows are open if rain is detected
+        """
         try:
             rain_amount = float(new)
         except ValueError as ve:
@@ -65,7 +69,9 @@ class Rain_Notify(hass.Hass):
             self.run_in(self.resetNotify, 10800)
     
 
-    def check_if_windows_needs_to_be_closed_wind(self, entity, attribute, old, new, kwargs):
+    def check_if_windows_needs_to_be_closed_wind(self, entity, attribute, old, new, kwargs) -> None:
+        """ Reacts to anemometer sensor update and checks if windows are open if wind is detected
+        """
         try:
             wind_amount = float(new)
         except ValueError as ve:
@@ -90,5 +96,7 @@ class Rain_Notify(hass.Hass):
             self.run_in(self.resetNotify, 10800)
 
 
-    def resetNotify(self, kwargs):
+    def resetNotify(self, kwargs) -> None:
+        """ Reset the timeout to send notification again.
+        """
         self.push_notice = True
