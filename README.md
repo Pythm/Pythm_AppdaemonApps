@@ -59,6 +59,28 @@ rancilio:
 
 The notification setup will remind you if the coffee machine is still on at 15:00
 
+### fire_alarm
+
+```yaml
+firealarm:
+  module: fire_alarm
+  class: FireAlarm
+  log: info_log
+  notify_reciever:
+    - Anders
+    - Epost
+  alarms:
+    - binary_sensor.654_aaa_zone_1_smoke
+    - binary_sensor.654_aaa_zone_2_smoke
+  turn_off:
+    - switch.dishwasher_power
+    - switch.kitch_espresso
+    - fan.mi_air_purifier
+  screens:
+    - cover.screen
+    - cover.garage_door
+```
+
 ### notify_mobiles
 
 ```yaml
