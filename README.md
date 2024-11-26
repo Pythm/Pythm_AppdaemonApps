@@ -81,6 +81,21 @@ firealarm:
     - cover.garage_door
 ```
 
+### garagedoor
+
+```yaml
+garagecover:
+  module: garagedoor
+  class: GarageDoor
+  log: info_log
+  garage: cover.garage_door
+  auto_open:
+    - input: input_boolean.auto_open_garage
+      presence: person.me
+  ios_open: openGarage
+  ios_close: closeGarage
+```
+
 ### notify_mobiles
 
 ```yaml
