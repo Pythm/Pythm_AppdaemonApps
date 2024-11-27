@@ -2,6 +2,8 @@
 
 I have created a script to clone and pull my repositories. The discussion can be found here: [How to keep repositories up to date.](https://github.com/Pythm/Pythm_AppdaemonApps/discussions/1)
 
+To suppress the errors for files not associated with a configuration you can define `missing_app_warnings` to 0 in your appdaemon.yaml file. [Check out Appdaemon readme](https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#appdaemon)
+
 ## Usage
 Configure automations with .yaml files in your conf/apps folder.
 
