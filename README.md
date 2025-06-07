@@ -9,17 +9,85 @@ Configure automations with .yaml files in your conf/apps folder.
 
 ## Configuration of different apps
 
+### appliance_notify
+
+```yaml
+tumbledryer:
+  module: appliance_notify
+  class: Dryer
+  notify_reciever:
+    - Me
+    - Mykid
+  notify_title: 'Tumbledryer'
+  notify_message: 'Tumbledryer is finished'
+  dryer_switch: switch.bod_stikk_tumbledryer
+  dryer_power: sensor.bod_stikk_tumbledryer_power
+```
+
+### bathroomWindow
+
+```yaml
+window_bath:
+  module: bathroomWindow
+  class: BathroomWindow
+  sensors:
+    - sensor: binary_sensor.bad_vindu_contact
+      duration: 1200
+  humidity: sensor.bad_multisensor_humidity
+  #refresh: True
+  humidity_minimum: sensor.min_bath_humid
+  check_below_temp: 20
+  notify_reciever:
+    - Me
+    - Mywife
+  notify_title: 'Window bath'
+  notify_message: 'Humidity is down'
+
+```
+
 ### change_dns_cloudflare
 
 ```yaml
 update_cloudflare_dns:
   module: change_dns_cloudflare
   class: Change_DNS
-  log: info_log
   cloudflare_api_token: !secret cloudflare_api_token
   zone_id: cfced792412e54e171f33a2e95dXXXXX
   dns_record_id: 08e9fa448a8c0ce4d87445e5120XXXXX
   enable_proxy: False # Defaults to True if not configured
+```
+
+### door_guard
+
+```yaml
+frige:
+  module: door_guard
+  class: DoorGuard
+  sensors:
+    - sensor: binary_sensor.bod_fryseskap_window_door_is_open
+      duration: 300
+  notify_reciever:
+    - Me
+    - Mywife
+    - Mykid
+  notify_title: 'Fridgedoor'
+  notify_message: 'Fridgedoor has been left open for 5 minutes'
+```
+
+### doorbell
+
+```yaml
+doorbell:
+  module: doorbell
+  class: Doorbell
+  notify_reciever:
+    - Me
+    - Mykid
+  notify_message: 'Someone at the door'
+  doorbell: binary_sensor.front_door_ding
+  camera: camera.front_door_live_view
+  media_player:
+    - media_player.appletv
 ```
 
 ### end_vacation
@@ -28,7 +96,6 @@ update_cloudflare_dns:
 vacation_end:
   module: end_vacation
   class: endVacation
-  log: info_log
   vacation_switch:
     - input_boolean.vacation
     - input_boolean.vacation_ac
@@ -45,9 +112,6 @@ vacation_end:
 rancilio:
   module: espresso_machine
   class: EspressoMachine
-  dependencies:
-    - notify_mobiles
-  log: info_log
   espresso_machine: switch.kitch_espresso
   coffee_timer: input_datetime.turn_on_coffee
   ios_toggle: espresso
@@ -65,10 +129,9 @@ The notification setup will remind you if the coffee machine is still on at 15:0
 firealarm:
   module: fire_alarm
   class: FireAlarm
-  log: info_log
   notify_reciever:
-    - Anders
-    - Epost
+    - Me
+    - Email
   alarms:
     - binary_sensor.654_aaa_zone_1_smoke
     - binary_sensor.654_aaa_zone_2_smoke
@@ -87,7 +150,6 @@ firealarm:
 garagecover:
   module: garagedoor
   class: GarageDoor
-  log: info_log
   garage: cover.garage_door
   auto_open:
     - input: input_boolean.auto_open_garage
@@ -96,13 +158,24 @@ garagecover:
   ios_close: closeGarage
 ```
 
+### media_stop
+
+```yaml
+stop_AppleTv:
+  module: media_stop
+  class: MediaStop
+  sensors:
+    - binary_sensor.front_door_ding
+  mediaplayer:
+    - media_player.loft
+```
+
 ### notify_mobiles
 
 ```yaml
 notify_mobiles:
   module: notify_mobiles
   class: Notify_Mobiles
-  log: info_log
   recipients:
     - person: Me
       reciever: 
@@ -140,9 +213,6 @@ Notify state change will listen for state change and notify you
 notify_on_rain:
   module: rain_notify
   class: Rain_Notify
-  dependencies:
-    - notify_mobiles
-  log: info_log
   rain_sensor:
     - sensor.netatmo_regnsensor_rain
   rain_amount: 0.1
@@ -152,5 +222,57 @@ notify_on_rain:
   windowsensors:
     - binary_sensor.window_door_is_open
   notify_reciever:
-    - Anders
+    - Me
+```
+
+### simultaneousOpened
+
+```yaml
+
+window_and_door:
+  module: simultaneousOpened
+  class: SimultaneousOpen
+  sensors:
+    - sensor: binary_sensor.door_contact
+      duration: 300
+  simultaneous_sensor: binary_sensor.window_door_is_open
+  temperature_sensor: sensor.stue_temperature_temperature
+  check_below_temp: 22.4 # Only notify if temperature is below value
+  notify_reciever:
+    - Kid
+  notify_title: 'Both door and window is open'
+  notify_message: 'Close either'
+
+```
+
+### wake_up
+
+```yaml
+
+wake_up_alarm:
+  module: wake_up
+  class: WakeUp
+  MQTT_namespace: mqtt
+  
+  workday: binary_sensor.workday_sensor
+  vacation: input_boolean.vekk_reist
+  alarm_switch: input_boolean.alarm_switch_nathaniel
+  alarm_switch_non_work_day: input_boolean.alarm_switch_non_work_day_nathaniel
+
+  media_player: media_player.nathaniel
+  volume: 0.6
+  playlist: Playlists/Morgen_Nathaniel
+  
+  wake_up_MQTTlights:
+    - zigbee2mqtt/NATH_HueGradient
+  light_data:
+    brightness: 80
+    effect: sunrise
+
+  time: input_datetime.vekkeklokke_nathaniel
+  light_time_offset: 5
+
+  conditions:
+    - "self.get_tracker_state('person.nathaniel') == 'home'"
+
 ```

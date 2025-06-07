@@ -9,11 +9,11 @@ import asyncio
 import json
 import datetime
 
-import adbase
+from appdaemon import adbase as ad
 import aiohttp
 
 
-class Change_DNS(adbase.ADBase):
+class Change_DNS(ad.ADBase):
 
     def initialize(self):
         self.ADapi = self.get_ad_api()
@@ -50,11 +50,10 @@ class Change_DNS(adbase.ADBase):
             self.ADapi.listen_state(self.ha_DNS_ip_sensor_changed, ip_sensor)
             self.public_ip = self.ADapi.get_state(ip_sensor)
         else:
-            self.ADapi.create_task(self.get_public_ip())
+            self.ADapi.create_task(self._get_public_ip())
             self.ADapi.run_hourly(self.checkPublicIPAddress, datetime.time(0, 10, 0))
 
-        self.ADapi.create_task(self.get_current_DNS())
-
+        self.ADapi.create_task(self._get_current_DNS())
 
     def ha_DNS_ip_sensor_changed(self, entity, attribute, old, new, kwargs) -> None:
         """ Listens for changes to HA dns sensor and updates cloudflare on change.
@@ -65,20 +64,18 @@ class Change_DNS(adbase.ADBase):
             and new != self.public_ip
         ):
             self.public_ip = new
-            self.ADapi.log(f"Detected new IP: {self.ip_address}")
-            self.ADapi.create_task(self.updateDNS())
-
+            self.ADapi.log(f"Detected new IP: {self.public_ip}") ###
+            self.ADapi.create_task(self._updateDNS())
 
     def checkPublicIPAddress(self, kwargs) -> None:
         """ Calls function get_public_ip
         """
-        self.ADapi.create_task(self.get_public_ip())
+        self.ADapi.create_task(self._get_public_ip())
 
 
-    async def get_public_ip(self) -> None:
+    async def _get_public_ip(self) -> None:
         """ Fetches public IP address from api.ipify.org
         """
-
         try :
             async with aiohttp.ClientSession() as session:
                 async with session.get("https://api.ipify.org") as response:
@@ -107,16 +104,19 @@ class Change_DNS(adbase.ADBase):
             )
             api_result_str = None
 
-        if api_result_str != None:
+        if api_result_str is not None:
             self.public_ip = api_result_str
             if (
                 api_result_str != self.dns_ip
                 and self.dns_ip is not None
             ):
-                self.ADapi.create_task(self.updateDNS())
+                self.ADapi.log(
+                    f"Public IP address changed to {self.public_ip}. Updating cloudflare."
+                ) ###
+                self.ADapi.create_task(self._updateDNS())
 
 
-    async def get_current_DNS(self) -> None:
+    async def _get_current_DNS(self) -> None:
         """ Fetches current IP address from Cloudflare.
         """
         try:
@@ -141,18 +141,15 @@ class Change_DNS(adbase.ADBase):
                 level='INFO')
             cloudflare_ip = None
 
-
-        if cloudflare_ip != None:
+        if cloudflare_ip is not None:
             self.dns_ip = cloudflare_ip
             if (
                 cloudflare_ip != self.public_ip
                 and self.public_ip is not None
             ):
-                self.ADapi.create_task(self.updateDNS())
+                self.ADapi.create_task(self._updateDNS())
 
-
-
-    async def updateDNS(self) -> None:
+    async def _updateDNS(self) -> None:
         """ Updates IP address to Cloudflare.
         """
         try:
@@ -161,12 +158,13 @@ class Change_DNS(adbase.ADBase):
                     "type": "A",
                     "name": self.record_name,
                     "content": self.public_ip,
-                    "proxied": True
+                    "proxied": self.proxy
                 })
                 async with session.put(self.reqUrl, headers=self.headersList, data=payload) as response:
                     if 200 <= response.status < 300:
                         api_result_str = await response.text()
                         api_result_dict = json.loads(api_result_str)
+                        self.ADapi.log(f"Result from API call to update IP address: {api_result_dict['result']}") ###
                     else:
                         self.ADapi.log(
                             f"Not able to update IP to cloudflare. Request returned with status: {response.status}. "
