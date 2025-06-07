@@ -8,9 +8,9 @@ Turns off switches and opens screens/garagedoors
 
 __version__ = "0.1.1"
 
-import appdaemon.plugins.hass.hassapi as hass
+from appdaemon.plugins.hass.hassapi import Hass
 
-class FireAlarm(hass.Hass):
+class FireAlarm(Hass):
 
     def initialize(self):
         self.notify_app = self.get_app('notify_mobiles')
@@ -22,7 +22,7 @@ class FireAlarm(hass.Hass):
         
         self.turn_off_items = self.args.get('turn_off', [])
 
-        sensor_states = self.get_state(entity='sensor')
+        sensor_states = self.get_state()
         for sensor_id, sensor_states in sensor_states.items():
             if 'media_player.' in sensor_id:
                 if not sensor_id in self.turn_off_items:
@@ -33,6 +33,7 @@ class FireAlarm(hass.Hass):
     def alarmactivated(self, entity, attribute, old, new, kwargs) -> None:
         """ Reacts to on and off from smoke detectors and fire alarms
         """
+        self.log(f"Fire Alarm: {entity}. New: {new}. Old: {old}") ###
         if new == 'on':
             self.fire_event("MODE_CHANGE", mode = 'fire')
             for item in self.turn_off_items:
@@ -55,12 +56,12 @@ class FireAlarm(hass.Hass):
                         level = 'INFO'
                     )
 
-            for r in self.notify_reciever:
-                self.notify_app.send_notification(
-                    message = f"{entity} {new}",
-                    message_title = "Smoke detected",
-                    message_recipient = r
-                )
+            self.notify_app.send_notification(
+                message = f"at {entity}",
+                message_title = "Smoke detected",
+                message_recipient = self.notify_reciever,
+                also_if_not_home = True
+            )
 
         elif (
             new == 'off'

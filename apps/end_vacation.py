@@ -1,13 +1,16 @@
 """ Stop vacation mode at given time or tracker/presence change.
 
+    # Changelog:
+    0.1.2: Starts listening for person returning home two hours after vacation start.
+
     @Pythm / https://github.com/Pythm
 """
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
-import appdaemon.plugins.hass.hassapi as hass
+from appdaemon.plugins.hass.hassapi import Hass
 
 
-class endVacation(hass.Hass):
+class endVacation(Hass):
 
     def initialize(self):
         if 'namespace' in self.args:
@@ -36,9 +39,9 @@ class endVacation(hass.Hass):
                     )
             else: 
                 self.listen_state(self.onVacation, switch,
-                    new = 'on'
+                    new = 'on',
+                    duration = 7200
                 )
-
 
     def onVacation(self, entity, attribute, old, new, kwargs) -> None:
         """ Starts listening for presence change to end vacation when new state is home
@@ -51,18 +54,16 @@ class endVacation(hass.Hass):
                 {person : person_handler}
             )
 
-
     def presenceChange(self, entity, attribute, old, new, kwargs) -> None:
         """ Listens for presence change and ends vacations if new state is home
         """
-        self.run_in(self.endVacation, 1)
-
+        self.endVacation(0)
 
     def endVacationAt(self, entity, attribute, old, new, kwargs) -> None:
         """ Updates time for when to end vacation
         """
         if self.datetime() < self.parse_datetime(self.get_state(self.vacation_ends)):
-            if self.vacation_handle != None:
+            if self.vacation_handle is not None:
                 if self.timer_running(self.vacation_handle):
                     try:
                         self.cancel_timer(self.vacation_handle)
@@ -73,7 +74,6 @@ class endVacation(hass.Hass):
                         )
             self.vacation_handle = self.run_at(self.endVacation, self.parse_datetime(self.get_state(self.vacation_ends)))
 
-
     def endVacation(self, kwargs) -> None:
         """ Ends vacation by turning off switch
         """
@@ -81,7 +81,7 @@ class endVacation(hass.Hass):
             self.turn_off(switch)
 
         for person in self.presence:
-            if self.listen_handle.get(person) != None:
+            if self.listen_handle.get(person) is not None:
                 try:
                     self.cancel_listen_state(self.listen_handle.get(person))
                 except Exception as e:
@@ -90,7 +90,7 @@ class endVacation(hass.Hass):
                         level = 'DEBUG'
                     )
 
-        if self.vacation_handle != None:
+        if self.vacation_handle is not None:
             if self.timer_running(self.vacation_handle):
                 try:
                     self.cancel_timer(self.vacation_handle)

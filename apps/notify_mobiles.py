@@ -3,11 +3,11 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
-import appdaemon.plugins.hass.hassapi as hass
+from appdaemon.plugins.hass.hassapi import Hass
 
-class Notify_Mobiles(hass.Hass):
+class Notify_Mobiles(Hass):
 
     def initialize(self):
         self.recipients = self.args.get('recipients', [])
@@ -24,53 +24,52 @@ class Notify_Mobiles(hass.Hass):
                 message = state_change
             )
 
-
-    def send_notification(self,
-        message:str = '',
-        message_title:str = '',
-        message_recipient:str = '',
-        also_if_not_home:bool = False
-    ) -> None:
+    def send_notification(self, **kwargs) -> None:
         """ Sends notification to recipients via Home Assistant notification.
         """
+        message:str = kwargs['message']
+        message_title:str = kwargs.get('message_title', 'Home Assistant')
+        message_recipient:str = kwargs.get('message_recipient', True)
+        also_if_not_home:bool = kwargs.get('also_if_not_home', False)
+        data:dict = kwargs.get('data', {'clickAction' : 'noAction'})
+    
         for r in self.recipients:
-            if r['person'] == message_recipient:
+            if (
+                r['person'] in message_recipient
+                or message_recipient == True
+            ):
                 if (
                     'tracker' in r
-                    or also_if_not_home   
+                    and not also_if_not_home
                 ):
                     if self.get_state(r['tracker']) != 'home':
                         continue
                 for re in r['reciever']:
-                    self.notify(f"{message}",
-                        title = f"{message_title}",
-                        name = f"{re}"
+                    self.call_service(f'notify/{re}',
+                        title = message_title,
+                        message = message,
+                        data = data
                     )
-                break
-
 
     def ios_event(self, event_name, data, kwargs) -> None:
         """ Listens for ios events configured with "siri message", sends notifications and changes mode.
         """
         message = kwargs['message']
         if 'notify_reciever' in message:
-            for r in message['notify_reciever']:
-                self.send_notification(
-                    message = message['notify_message'],
-                    message_title = message['notify_title'],
-                    message_recipient = r
-                )
+            self.send_notification(
+                message = message['notify_message'],
+                message_title = message['notify_title'],
+                message_recipient = message['notify_reciever']
+            )
         self.fire_event("MODE_CHANGE", mode = message['message'] )
-
 
     def stateChanged(self, entity, attribute, old, new, kwargs) -> None:
         """ Listens for state changes and sends notification
         """
         message = kwargs['message']
         if 'notify_reciever' in message:
-            for r in message['notify_reciever']:
-                self.send_notification(
-                    message = f"{message['notify_message']} {self.get_state(entity)}",
-                    message_title = message['notify_title'],
-                    message_recipient = r
-                )
+            self.send_notification(
+                message = f"{message['notify_message']} {self.get_state(entity)}",
+                message_title = message['notify_title'],
+                message_recipient = message['notify_reciever']
+            )
