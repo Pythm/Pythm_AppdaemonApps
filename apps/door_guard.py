@@ -38,7 +38,7 @@ class DoorGuard(ad.ADBase):
             )
 
 
-    def openedForDuration(self, entity, attribute, old, new, kwargs) -> None:
+    def openedForDuration(self, entity, attribute, old, new, **kwargs) -> None:
         """ Reacts to sensors being on for a certain duration
         """
         duration = int(kwargs['time_to_recheck'])
@@ -47,7 +47,7 @@ class DoorGuard(ad.ADBase):
         )
 
 
-    def _check_if_closed(self,kwargs):
+    def _check_if_closed(self, **kwargs):
         """ Checks if the sensors has been closed
         """
         duration = int(kwargs['time_to_recheck'])
