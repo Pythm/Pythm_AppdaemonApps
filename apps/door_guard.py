@@ -54,6 +54,7 @@ class DoorGuard(ad.ADBase):
         for sensor in self.sensors:
             if self.ADapi.get_state(sensor['sensor'], namespace = self.HASS_namespace) == 'on':
                 self._send_notification()
+                self._cancel_timer_handler()
                 self.timer_handler = self.ADapi.run_in(self._check_if_closed, duration,
                     time_to_recheck = duration
                 )
@@ -72,9 +73,13 @@ class DoorGuard(ad.ADBase):
         )
 
     def _window_closed(self, entity, attribute, old, new, kwargs):
+        self._cancel_timer_handler()
+
+    def _cancel_timer_handler(self):
         if self.timer_handler is not None:
-            try:
-                self.ADapi.cancel_listen_state(self.timer_handler)
-            except Exception as exc:
-                self.ADapi.log(f"Could not stop hander in doorGuard {self.timer_handler}. Exception: {exc}", level = 'DEBUG')
+            if self.ADapi.timer_running(self.timer_handler):
+                try:
+                    self.ADapi.cancel_timer(self.timer_handler)
+                except Exception as exc:
+                    self.ADapi.log(f"Could not stop hander in doorGuard {self.timer_handler}. Exception: {exc}", level = 'DEBUG')
             self.timer_handler = None
