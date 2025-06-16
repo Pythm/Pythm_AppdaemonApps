@@ -97,7 +97,7 @@ class Change_DNS(ad.ADBase):
                         api_result_str = None
 
         except Exception as e:
-            self.log(
+            self.ADapi.log(
                 f"Not able to get IP from ipify. "
                 f"Exception: {e}",
                 level='INFO'

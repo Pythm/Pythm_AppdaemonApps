@@ -30,13 +30,7 @@ class endVacation(Hass):
 
         for switch in self.vacation_switch:
             if self.get_state(switch) == 'on':
-                for person in self.presence:
-                    person_handler = self.listen_state(self.presenceChange, person,
-                        new = 'home'
-                    )
-                    self.listen_handle.update(
-                        {person : person_handler}
-                    )
+                self._create_listen_for_return_home()
             else: 
                 self.listen_state(self.onVacation, switch,
                     new = 'on',
@@ -46,6 +40,9 @@ class endVacation(Hass):
     def onVacation(self, entity, attribute, old, new, kwargs) -> None:
         """ Starts listening for presence change to end vacation when new state is home
         """
+        self._create_listen_for_return_home()
+
+    def _create_listen_for_return_home(self):
         for person in self.presence:
             person_handler = self.listen_state(self.presenceChange, person,
                 new = 'home'
@@ -86,7 +83,7 @@ class endVacation(Hass):
                     self.cancel_listen_state(self.listen_handle.get(person))
                 except Exception as e:
                     self.log(
-                        f"Could not stop handler in {self.name} for {entity}. Exception {e}",
+                        f"Could not stop handler in {self.name} for {person}. Exception {e}",
                         level = 'DEBUG'
                     )
 
