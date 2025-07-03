@@ -13,7 +13,7 @@ class HomeConnect(ad.ADBase):
 
     def initialize(self):
         self.ADapi = self.get_ad_api()
-        self.electricalPrice = self.ADapi.get_app('electricityPrice')
+        self.electricalPrice = self.ADapi.get_app('electricalPriceCalc')
         self.notify_app = self.ADapi.get_app('notify_mobiles')
         self.notify_reciever = self.args['notify_reciever']
 
@@ -97,7 +97,7 @@ class HomeConnect(ad.ADBase):
         """
         if self.ADapi.now_is_between(str(self.dayruntime.time()), str(self.dayruntime_stop.time())):
             # Run during daytime
-            startWashingAt, EndAt, price = self.electricalPrice.getContinuousCheapestTime(
+            startWashingAt, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
                 hoursTotal = self.dayprogram['running_time'],
                 calculateBeforeNextDayPrices = True,
                 finishByHour = 16
@@ -109,17 +109,17 @@ class HomeConnect(ad.ADBase):
                     self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                         program = self.dayprogram['program']
                     )
-                    NOTIFY_APP.send_notification(
-                        message = f"Starting {self.ADapi.get_state(self.dayprogram['program'], attribute='friendly_name', namespace = self.HASS_namespace)} "
+                    self.notify_app.send_notification(
+                        message = f"Starting {self.dayprogram['program']} "
                         f"at {startWashingAt}",
                         message_title = "Appliances",
-                        message_recipient = RECIPIENTS,
+                        message_recipient = self.notify_reciever,
                         also_if_not_home = False
                     )
                     return
         else:
             # Run during nighttime
-            startWashingAt, EndAt, price = self.electricalPrice.getContinuousCheapestTime(
+            startWashingAt, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
                 hoursTotal = self.nightprogram['running_time'],
                 calculateBeforeNextDayPrices = False,
                 finishByHour = 8
@@ -131,11 +131,11 @@ class HomeConnect(ad.ADBase):
                     self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                         program = self.nightprogram['program']
                     )
-                    NOTIFY_APP.send_notification(
-                        message = f"Starting {self.ADapi.get_state(self.nightprogram['program'], attribute='friendly_name', namespace = self.HASS_namespace)} "
+                    self.notify_app.send_notification(
+                        message = f"Starting {self.nightprogram['program']} "
                         f"at {startWashingAt}",
                         message_title = "Appliances",
-                        message_recipient = RECIPIENTS,
+                        message_recipient = self.notify_reciever,
                         also_if_not_home = False
                     )
                     return
