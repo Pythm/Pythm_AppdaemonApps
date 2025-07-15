@@ -10,7 +10,8 @@ from appdaemon.plugins.hass.hassapi import Hass
 class Dryer(Hass):
 
     def initialize(self):
-        self.notify_app = self.get_app('notify_mobiles')
+        name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
+        self.notify_app = self.get_app(name_of_notify_app)
         self.notify_reciever = self.args['notify_reciever']
         self.notify_title = self.args['notify_title']
         self.notify_message = self.args['notify_message']

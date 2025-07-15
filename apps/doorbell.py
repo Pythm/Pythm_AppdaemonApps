@@ -15,7 +15,8 @@ class Doorbell(Hass):
     def initialize(self):
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
 
-        self.notify_app = self.get_app('notify_mobiles')
+        name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
+        self.notify_app = self.get_app(name_of_notify_app)
         self.notify_reciever = self.args['notify_reciever']
         self.notify_message = self.args.get('notify_message', 'Someone at the door')
         self.notify_when_away = self.args.get('notify_when_away', True)
