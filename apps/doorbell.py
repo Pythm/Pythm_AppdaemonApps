@@ -41,7 +41,7 @@ class Doorbell(Hass):
         self.notify_app.send_notification(
             message = f"Besøk",
             message_recipient = self.notify_reciever,
-            also_if_not_home = False, #True
+            also_if_not_home = True,
             data = data
         )
 

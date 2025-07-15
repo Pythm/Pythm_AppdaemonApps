@@ -6,13 +6,36 @@ Turns off switches and opens screens/garagedoors
 
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from appdaemon.plugins.hass.hassapi import Hass
+import json
+import csv
+
+# Translations from json for 'MODE_CHANGE' events
+FIRE_TRANSLATE:str = 'fire'
+FALSE_ALARM_TRANSLATE:str = 'false-alarm'
 
 class FireAlarm(Hass):
 
     def initialize(self):
+        self.HASS_namespace:str = self.args.get('main_namespace', 'default')
+        self.event_listen_str:str = 'MODE_CHANGE'
+
+        language = self.args.get('lightwand_language', 'en')
+        language_file = self.args.get('language_file', '/conf/apps/Lightwand/translations.json')
+        try:
+            with open(language_file) as lang:
+                translations = json.load(lang)
+        except FileNotFoundError:
+            self.log("Translation file not found", level = 'DEBUG')
+        else:
+            self.event_listen_str = translations[language]['MODE_CHANGE']
+            global FIRE_TRANSLATE
+            FIRE_TRANSLATE = translations[language]['fire']
+            global FALSE_ALARM_TRANSLATE
+            FALSE_ALARM_TRANSLATE = translations[language]['false-alarm']
+
         self.notify_app = self.get_app('notify_mobiles')
         self.notify_reciever = self.args['notify_reciever']
 
@@ -35,7 +58,7 @@ class FireAlarm(Hass):
         """
         self.log(f"Fire Alarm: {entity}. New: {new}. Old: {old}") ###
         if new == 'on':
-            self.fire_event("MODE_CHANGE", mode = 'fire')
+            self.fire_event(self.event_listen_str, mode = FIRE_TRANSLATE)
             for item in self.turn_off_items:
                 try:
                     if self.get_state(item) == 'on':
@@ -67,4 +90,4 @@ class FireAlarm(Hass):
             new == 'off'
             and old == 'on'
         ):
-            self.fire_event("MODE_CHANGE", mode = 'false_alarm')
+            self.fire_event(self.event_listen_str, mode = FALSE_ALARM_TRANSLATE)
