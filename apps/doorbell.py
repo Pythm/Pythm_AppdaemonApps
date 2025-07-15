@@ -18,6 +18,7 @@ class Doorbell(Hass):
         self.notify_app = self.get_app('notify_mobiles')
         self.notify_reciever = self.args['notify_reciever']
         self.notify_message = self.args.get('notify_message', 'Someone at the door')
+        self.notify_when_away = self.args.get('notify_when_away', True)
 
         doorbell = self.args['doorbell']
         self.listen_state(self.doorRing, doorbell, new = 'on')
@@ -41,7 +42,7 @@ class Doorbell(Hass):
         self.notify_app.send_notification(
             message = f"Besøk",
             message_recipient = self.notify_reciever,
-            also_if_not_home = True,
+            also_if_not_home = self.notify_when_away,
             data = data
         )
 
