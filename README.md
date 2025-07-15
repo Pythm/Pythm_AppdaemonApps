@@ -8,6 +8,7 @@ To suppress the errors for files not associated with a configuration you can def
 Configure automations with .yaml files in your conf/apps folder.
 
 ## Configuration of different apps
+The 'notify_mobiles.py' is the standard app for notifying using my apps. It's name defaults to 'notify_mobiles' If you call it something else you need to configure other apps with 'notify_app' and name of the app, to get notifications. Failing to either use standard name or configure with other name will result in an error.
 
 ### appliance_notify
 
