@@ -36,8 +36,17 @@ class FireAlarm(Hass):
             global FALSE_ALARM_TRANSLATE
             FALSE_ALARM_TRANSLATE = translations[language]['false-alarm']
 
-        self.notify_app = self.get_app('notify_mobiles')
+        name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
+        self.notify_app = self.get_app(name_of_notify_app)
         self.notify_reciever = self.args['notify_reciever']
+
+        mode_management_app_name = self.args.get('modeManagementApp', None)
+        if mode_management_app_name is None:
+            self.mode_management_app = None
+        else:
+            self.mode_management_app = self.get_app(mode_management_app_name)
+            self.anyone_home = self.mode_management_app.anyone_home()
+        self.anyone_home = True
 
         alarms = self.args.get('alarms', [])
         for alarm in alarms:
@@ -69,15 +78,18 @@ class FireAlarm(Hass):
                         level = 'INFO'
                     )
 
-            for screen in self.screens:
-                try:
-                    if self.get_state(screen, attribute='current_position') != 100:
-                        self.call_service('cover/open_cover', entity_id= screen)
-                except Exception as exc:
-                    self.log(
-                        f"Could not open {screen} when fire alarm was trigered. Exception: {exc}",
-                        level = 'INFO'
-                    )
+            if self.mode_management_app:
+                self.anyone_home = self.mode_management_app.anyone_home()
+            if self.anyone_home:
+                for screen in self.screens:
+                    try:
+                        if self.get_state(screen, attribute='current_position') != 100:
+                            self.call_service('cover/open_cover', entity_id= screen)
+                    except Exception as exc:
+                        self.log(
+                            f"Could not open {screen} when fire alarm was trigered. Exception: {exc}",
+                            level = 'INFO'
+                        )
 
             self.notify_app.send_notification(
                 message = f"at {entity}",
