@@ -1,42 +1,48 @@
-# Pythm's Appdaemon Apps
+# 📦 Pythm's AppDaemon Apps  
 
-I have created a script to clone and pull my repositories. The discussion can be found here: [How to keep repositories up to date.](https://github.com/Pythm/Pythm_AppdaemonApps/discussions/1)
+Welcome to Pythm's collection of **AppDaemon apps** tailored for automation, energy management, and smart home integration. These apps are designed for **paying customers** and are part of a private repository.  
 
-To suppress the errors for files not associated with a configuration you can define `missing_app_warnings` to 0 in your appdaemon.yaml file. [Check out Appdaemon readme](https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#appdaemon)
+---
 
-## Usage
-Configure automations with .yaml files in your conf/apps folder.
+## 🚀 Getting Started  
 
-## Common for all apps
+### 1. **Clone and Setup**  
+Use the [setup guide](https://github.com/Pythm/Pythm_AppdaemonApps/discussions/1) to clone and keep your repositories up to date.  
 
-#### Notifications
-The 'notify_mobiles.py' is the standard app for notifying using my apps. It's name defaults to 'notify_mobiles' in all apps. If you call it something else you need to configure other apps with 'notify_app' and name of the app, to get notifications. Failing to either use standard name or configure with other name will result in an error.
+### 2. **Suppress Warnings**  
+To avoid warnings for unused apps, set `missing_app_warnings: 0` in your `appdaemon.yaml` file.  
 
-Configure the names in the app and use the names as receivers in configuration of other apps
+---
 
-#### Namespace
-A key feature of Appdaemon is the ability to define custom namespaces. Visit the [Appdaemon documentation](https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#) for more information.
+## 📌 Common Configuration  
 
-If you have not configured any namespace for your HASS plugin in your 'appdaemon.yaml' file, you can safely ignore namespaces. The default for HASS is 'default'. If you use MQTT you will need to set a namespace for that.
+### 🔔 Notifications  
+All apps use the `notify_mobiles.py` app by default (named `notify_mobiles`). If you rename this app, configure other apps with the `notify_app` parameter and the new name. You can also configure my public apps with `notify_app: notify_mobiles` to get some more options on notifications.
 
-All apps are configurable to change namespace with:
-```yaml HASS_namespace: default ```
-and if mqtt is applicable:
-```yaml MQTT_namespace: mqtt ```
+### 🧭 Namespace Configuration  
+AppDaemon supports custom namespaces for HA and MQTT. If not configured, defaults are:  
+- **HA**: `default`  
+- **MQTT**: `mqtt`  
 
-In addition there are some apps that allow use of namespace on certain entities if they are in another namespace than defined with HASS_namespace / default.
+Configure with:  
+```yaml
+HASS_namespace: default
+MQTT_namespace: mqtt
+```
 
-## Configuration of different apps
+---
 
-### appliance_home_connect
+## 📦 App List  
 
-Requirements:
-- [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)
+Below are the available apps with configuration examples and requirements.  
 
-To start Home Connect appliances when electricity price is low. Will finish by 16:00 if started daytime or 07:00 if started in the evening.
-Note: Electrical appliances like washing mashimes should only be used when awake. Use at own risk.
+---
 
-Long press notification to turn on now, if calculated time does not fit your schedule.
+### 🧊 `appliance_home_connect`  
+**Requirements**: [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)  
+**Function**: Starts appliances (e.g., dishwasher) when electricity prices are low.  
+
+**Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.  
 
 ```yaml
 dishwasher:
@@ -49,7 +55,6 @@ dishwasher:
   notify_reciever:
     - Me
   remote_start: binary_sensor.dishwasher_remote_start
-  active_program: select.dishwasher_active_program
   day:
     program: dishcare_dishwasher_program_eco_50
     running_time: 3
@@ -58,10 +63,10 @@ dishwasher:
     running_time: 4
 ```
 
-### appliance_notify
+---
 
-Listens on the power sensor for when consumption goes above 100 for 30 seconds and then falls again below 15 for 30 seconds.
-Long press notification to turn off if dryer_switch is configured
+### 🧺 `appliance_notify`  
+**Function**: Notifies when a dryer finishes (based on power sensor).  
 
 ```yaml
 tumbledryer:
@@ -78,12 +83,12 @@ tumbledryer:
   dryer_power: sensor.tumbledryer_power
 ```
 
-### bathroomWindow
+---
 
-Requirements:
-- [ad-Weather](https://github.com/Pythm/ad-Weather)
+### 🚪 `bathroomWindow`  
+**Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
+**Function**: Notifies when bathroom humidity drops and window is open.  
 
-Notifies when humidity is down below average +10 and window/sensor is open/on. Long press notification to stop further notifications.
 ```yaml
 window_bath:
   module: bathroomWindow
@@ -98,22 +103,18 @@ window_bath:
   notify_reciever:
     - Me
     - Mywife
-  notify_title: 'BathWindow'
-  notify_message: 'Humidity is down to a normal level'
-
 ```
 
-### change_dns_cloudflare
+---
 
-Finding your public IP address
-Will listen to changes in Home Assistant DNS IP integration if `ip_sensor` is configured.
-If not it will check against 'api.ipify.org' every hour, and on initialize.
+### 🌐 `change_dns_cloudflare`  
+**Function**: Updates Cloudflare DNS with your public IP.  
 
-Links, authorization and ID's needed to connect to API to update cloudflare DNS with new IP.
-- cloudflare_api_token. Generate one at your profile - Authentications. Use the Edit Zone DNS template.
-- zone_id is found at the overview page at dash.cloudflare.com
-- dns_record_id is the ID for each DNS record for the zone. Use "List DNS Records" Api call to find them.
-    https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records
+**Setup Instructions**:  
+- **cloudflare_api_token**: Generate one at your profile → **Authentications**. Use the **Edit Zone DNS** template.  
+- **zone_id**: Found at the **Overview page** on [dash.cloudflare.com](https://dash.cloudflare.com).  
+- **dns_record_id**: Use the **List DNS Records** API call to find it:  
+  [https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records](https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records)  
 
 ```yaml
 update_cloudflare_dns:
@@ -122,12 +123,14 @@ update_cloudflare_dns:
   cloudflare_api_token: !secret cloudflare_api_token
   zone_id: yourCloudflareZoneID
   dns_record_id: yourCloudflareZoneID
-  enable_proxy: False # Defaults to True if not configured
+  enable_proxy: False
 ```
 
-### door_guard
+---
 
-Notifies if a sensor has been on for duration. Long press notification to stop further notifications.
+### 🔐 `door_guard`  
+**Function**: Notifies if a door/window is left open for a specified duration.  
+
 ```yaml
 frige:
   module: door_guard
@@ -141,13 +144,12 @@ frige:
     - Me
     - Mywife
     - Mykid
-  notify_title: 'Fridgedoor'
-  notify_message: 'Fridgedoor has been left open for 5 minutes'
 ```
 
-### doorbell
+---
 
-Stores snapshots in the directory = '/root/.homeassistant/www/doorbell/' and sends notifications. Can also pause active media players and play camera stream from the camera.
+### 🎵 `doorbell`  
+**Function**: Captures snapshots, sends notifications, and controls media players.  
 
 ```yaml
 doorbell:
@@ -156,16 +158,16 @@ doorbell:
   notify_reciever:
     - Me
     - Mykid
-  notify_message: 'Someone at the door'
   doorbell: binary_sensor.front_door_ding
   camera: camera.front_door_live_view
   media_player:
     - media_player.appletv
 ```
 
-### end_vacation
+---
 
-Automatic ending of vacation mode on presence or datetime. `presence` will turn off vacation when discovered at home.
+### 🚪 `end_vacation`  
+**Function**: Automatically ends vacation mode on presence or datetime.  
 
 ```yaml
 vacation_end:
@@ -174,32 +176,34 @@ vacation_end:
   vacation_switch:
     - input_boolean.vacation
     - input_boolean.vacation_ac
-  vacation_ends: input_datetime.end_vacation
   presence:
     - person.me
 ```
 
-### espresso_machine
+---
 
-The notification setup will remind you if the coffee machine is still on at 15:00. Long press notification to turn off
+### ☕ `espresso_machine`  
+**Function**: Notifies if the coffee machine is still on at 15:00.  
+
+**iOS Toggle**:  
+- Add an iOS toggle (e.g., `ios_toggle: espresso`) to manually turn the machine on/off.  
 
 ```yaml
 rancilio:
   module: espresso_machine
   class: EspressoMachine
   espresso_machine: switch.kitch_espresso
-  coffee_timer: input_datetime.turn_on_coffee
-  ios_toggle: espresso
   notify_reciever:
     - Me
   notify_title: 'Coffee'
   notify_message: 'Coffee machine is still on'
 ```
 
+---
 
-### fire_alarm
-
-Configure translation from Lightwand modes with: `lightwand_language` for language and `language_file` for path. Configure [ad-ModeManagement](https://github.com/Pythm/ad-ModeManagement) to get some basic away functionality like not opening screens/garagedoors when nobody is home.
+### 🔥 `fire_alarm`  
+**Requirements**: [ad-ModeManagement](https://github.com/Pythm/ad-ModeManagement)  
+**Function**: Integrates with fire alarms, mode management, and device control.  
 
 ```yaml
 firealarm:
@@ -213,7 +217,6 @@ firealarm:
     - Email
   alarms:
     - binary_sensor.654_aaa_zone_1_smoke
-    - binary_sensor.654_aaa_zone_2_smoke
   turn_off:
     - switch.dishwasher_power
     - switch.kitch_espresso
@@ -223,10 +226,11 @@ firealarm:
     - cover.garage_door
 ```
 
-### garagedoor
+---
 
-Opens and closes covers with ios actions (from iPhone / iWatch). Autoopens on returning home if HA input boolean is on.
-Listens to same Mode Event as Lightwand/ ModeManagement and fire_alarm and checks if garagedoor is closed when away/night mode is called. Notifies with option to close. Add a camera to get a snapshot with notification.
+### 🚗 `garagedoor`  
+**Function**: Opens/closes garage doors via iOS, auto-opens on presence, and sends notifications.  
+
 ```yaml
 garagecover:
   module: garagedoor
@@ -235,16 +239,22 @@ garagecover:
   auto_open:
     - input: input_boolean.auto_open_garage
       presence: person.me
-  ios_open: openGarage
-  ios_close: closeGarage
   notify_reciever:
     - Me
   camera: camera.camera_garage
 ```
 
-### log_energy_usage
+---
 
-Logs energy usage every Nordpool spotprice periode and calculates total every month with price and avg price for total.
+### 📊 `log_energy_usage`  
+**Requirements**: [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)  
+**Function**: Logs energy usage and calculates costs per month.  
+
+**Special Features**:  
+- The **"Total"** item calculates the **average price** and **total cost** for the month.  
+- Input texts and **guest** usage can be configured:  
+  - `input_text: input_text.cost_pr_month` (for apartment)  
+  - `guestUse: input_boolean.easeelader_guest_charging` (for guest)  
 
 ```yaml
 log_energy_usage:
@@ -254,8 +264,6 @@ log_energy_usage:
     - electricalPriceCalc
     - notify_mobiles
   csv_folder_path: '/conf/db/'
-  notify_reciever:
-    - Me
   items:
     - name: Total
       entity: sensor.last_meter_consumption_home
@@ -268,13 +276,11 @@ log_energy_usage:
       guestUse: input_boolean.easeelader_guest_charging
       namespace_guest: hass_main
 ```
-The items contains a list of entities with consumption to track. `name` is your preffered ID. If `name` is 'Total' the app will calculate avg price when calculation total every month.
 
-Options:
-- input_text will write cost of consumption to a HA input_text. Configure `namespace_input_text` if the `input_text` is in another namespace e.g. appartment.
-- guestUse: Use any sensor reporting 'on' and app will calculate price and notify cost after sensor has been turned off. 
+---
 
-### media_stop
+### 🚫 `media_stop`  
+**Function**: Stops media players when a sensor (e.g., doorbell) is triggered.  
 
 ```yaml
 stop_AppleTv:
@@ -286,7 +292,14 @@ stop_AppleTv:
     - media_player.loft
 ```
 
-### notify_mobiles
+---
+
+### 📱 `notify_mobiles`  
+**Function**: Central notification hub for all apps.  
+
+**Special Features**:  
+- **Siri Messages**: Use custom messages for iOS events (e.g., `siri_message: message: food`). To send notifications and update `MODE_CHANGE` used in Lightwand.
+- **Notify on State Change**: Sends notifications when a specific sensor changes state (e.g., `sensor.myip`).  
 
 ```yaml
 notify_mobiles:
@@ -300,14 +313,13 @@ notify_mobiles:
     - person: Email
       reciever: 
         - gmail
-
   siri_message: 
     - message: food
       notify_reciever:
         - Me
       notify_title: 'Food'
       notify_message: 'Food is on the table!'
-    - message: night # Just for calling night mode from ios event
+    - message: night # Just for calling night mode from iOS event
       
   notify_state_change:
     - sensor: sensor.myip
@@ -317,13 +329,11 @@ notify_mobiles:
         - Email
         - Me
 ```
-Set up people and their devices with recipients. If tracker is provided it will not send notificatios if not home by default.
 
-Siri messages or ios events will do a mode change event and also send notifications.
+---
 
-Notify state change will listen for state change and notify you
-
-### rain_notify
+### 🌧️ `rain_notify`  
+**Function**: Notifies when rain or wind conditions are met.  
 
 ```yaml
 notify_on_rain:
@@ -332,19 +342,16 @@ notify_on_rain:
   rain_sensor:
     - sensor.netatmo_regnsensor_rain
   rain_amount: 0.1
-  anemometer:
-    - sensor.netatmo_anemometer_wind_strength
-  anemometer_speed: 20
-  windowsensors:
-    - binary_sensor.window_door_is_open
   notify_reciever:
     - Me
 ```
 
-### simultaneousOpened
+---
+
+### 🚪 `simultaneousOpened`  
+**Function**: Notifies if multiple sensors (e.g., door and window) are open simultaneously.  
 
 ```yaml
-
 window_and_door:
   module: simultaneousOpened
   class: SimultaneousOpen
@@ -358,36 +365,42 @@ window_and_door:
     - Kid
   notify_title: 'Both door and window is open'
   notify_message: 'Close either'
-
 ```
 
-### wake_up
+---
+
+### 🕒 `wake_up`  
+**Function**: Custom wake-up alarm with lights, media, and conditions.  
 
 ```yaml
-
 wake_up_alarm:
   module: wake_up
   class: WakeUp
-
   country_code: 'NO'
-  vacation: input_boolean.vekk_reist
-  alarm_switch: input_boolean.alarm_switch_nathaniel
-  alarm_switch_non_work_day: input_boolean.alarm_switch_non_work_day_nathaniel
-
   media_player: media_player.nathaniel
   volume: 0.6
   playlist: Playlists/Morgen_Nathaniel
-  
   wake_up_MQTTlights:
     - zigbee2mqtt/NATH_HueGradient
   light_data:
     brightness: 80
     effect: sunrise
-
   time: input_datetime.vekkeklokke_nathaniel
   light_time_offset: 5
-
   conditions:
     - "self.get_tracker_state('person.nathaniel') == 'home'"
-
 ```
+
+---
+
+## 📝 Additional Notes  
+
+### Support  
+For issues or questions, contact [Pythm via GitHub](https://github.com/Pythm).  
+
+---
+
+## 📌 License  
+All apps are distributed under the **MIT License**. Use at your own risk.  
+
+
