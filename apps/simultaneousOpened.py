@@ -14,7 +14,8 @@ class SimultaneousOpen(ad.ADBase):
     def initialize(self):
         
         self.ADapi = self.get_ad_api()
-        self.notify_app = self.ADapi.get_app('notify_mobiles')
+        name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
+        self.notify_app = self.ADapi.get_app(name_of_notify_app)
 
         self.notify_reciever = self.args['notify_reciever']
         self.notify_title = self.args['notify_title']
@@ -159,3 +160,14 @@ class SimultaneousOpen(ad.ADBase):
                     level = 'DEBUG'
                 )
             self.handler = None
+
+        data = {
+            'tag' : str(self.name),
+            }
+        self.notify_app.send_notification(
+            message = "clear_notification",
+            message_title = self.notify_title,
+            message_recipient = self.notify_reciever,
+            also_if_not_home = False,
+            data = data
+        )

@@ -3,52 +3,83 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.0.3"
+__version__ = "0.1.0"
 
 from appdaemon.plugins.hass.hassapi import Hass
 
 class Dryer(Hass):
 
     def initialize(self):
-        self.notify_app = self.get_app('notify_mobiles')
+        name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
+        self.notify_app = self.get_app(name_of_notify_app)
         self.notify_reciever = self.args['notify_reciever']
         self.notify_title = self.args['notify_title']
         self.notify_message = self.args['notify_message']
 
+            # Namespaces
+        self.HASS_namespace = self.args.get('HASS_namespace', 'default')
+
         self.dryer_switch = self.args.get('dryer_switch', None)
+        if self.dryer_switch is not None:
+            self.turn_off_action:str = 'turn_off_' + str(self.dryer_switch)
+            self.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
         self.dryer_power = self.args['dryer_power']
 
-        self.listen_state(self.dryer_is_running, self.dryer_power,
+        self.listen_state(self._dryer_is_running, self.dryer_power,
             constrain_state=lambda x: float(x) > 100,
             duration = 30,
-            oneshot = True
+            oneshot = True,
+            namespace = self.HASS_namespace
         )
 
-    def dryer_is_running(self, entity, attribute, old, new, kwargs):
+    def _dryer_is_running(self, entity, attribute, old, new, kwargs):
         """ Reacts to powerconsumption and waiting for it to fall again
         """
         self.listen_state(self.dryer_is_stopping, self.dryer_power,
             constrain_state=lambda x: float(x) < 15,
             duration = 30,
-            oneshot = True
+            oneshot = True,
+            namespace = self.HASS_namespace
         )
 
     def dryer_is_stopping(self, entity, attribute, old, new, kwargs):
         """ Reacts to powerconsumption falling and notifies.
         """
+        data = {
+            'tag' : str(self.dryer_switch),
+            }
         if self.dryer_switch is not None:
-            #TODO: Ask to turn off
-            #self.turn_off(self.dryer_switch)
-            pass
+            data = {
+                'tag' : str(self.dryer_switch),
+                'actions' : [{ 'action' : self.turn_off_action, 'title' : 'Turn Off', 'destructive' : True, 'icon' : 'sfsymbols:stop.circle.fill' }]
+                }
         self.notify_app.send_notification(
             message = self.notify_message,
             message_title = self.notify_title,
             message_recipient = self.notify_reciever,
-            also_if_not_home = False
+            also_if_not_home = True,
+            data = data
         )
-
-        self.listen_state(self.dryer_is_running, self.dryer_power,
+        self.listen_state(self._dryer_is_running, self.dryer_power,
             constrain_state=lambda x: float(x) > 100,
             duration = 30,
-            oneshot = True
+            oneshot = True,
+            namespace = self.HASS_namespace
         )
+
+    def _notify_event(self, event_name, data, kwargs) -> None:
+        if data['action'] == self.turn_off_action:
+            self.call_service('switch/turn_off',
+                entity_id = self.dryer_switch,
+                namespace = self.HASS_namespace
+            )
+            data = {
+                'tag' : str(self.dryer_switch),
+                }
+            self.notify_app.send_notification(
+                message = "clear_notification",
+                message_title = self.notify_title,
+                message_recipient = self.notify_reciever,
+                also_if_not_home = True,
+                data = data
+            )

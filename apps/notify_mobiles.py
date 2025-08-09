@@ -3,13 +3,25 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from appdaemon.plugins.hass.hassapi import Hass
 
 class Notify_Mobiles(Hass):
 
     def initialize(self):
+        self.event_listen_str:str = 'MODE_CHANGE'
+
+        language = self.args.get('lightwand_language', 'en')
+        language_file = self.args.get('language_file', '/conf/apps/Lightwand/translations.json')
+        try:
+            with open(language_file) as lang:
+                translations = json.load(lang)
+        except FileNotFoundError:
+            self.log("Translation file not found", level = 'DEBUG')
+        else:
+            self.event_listen_str = translations[language]['MODE_CHANGE']
+
         self.recipients = self.args.get('recipients', [])
         siri_message = self.args.get('siri_message', [])
         for message in siri_message:
@@ -32,7 +44,7 @@ class Notify_Mobiles(Hass):
         message_recipient:str = kwargs.get('message_recipient', True)
         also_if_not_home:bool = kwargs.get('also_if_not_home', False)
         data:dict = kwargs.get('data', {'clickAction' : 'noAction'})
-    
+
         for r in self.recipients:
             if (
                 r['person'] in message_recipient
@@ -44,12 +56,24 @@ class Notify_Mobiles(Hass):
                 ):
                     if self.get_state(r['tracker']) != 'home':
                         continue
-                for re in r['reciever']:
-                    self.call_service(f'notify/{re}',
-                        title = message_title,
-                        message = message,
-                        data = data
-                    )
+
+                if not message == "clear_notification":
+                    if not 'clickAction' in data:
+                        data.update({'clickAction' : 'noAction'})
+                        self.log(f"Updated data with clickAction: {data}") ###
+
+                    for re in r['reciever']:
+                        self.call_service(f'notify/{re}',
+                            title = message_title,
+                            message = message,
+                            data = data
+                        )
+                else:
+                    for re in r['reciever']:
+                        self.call_service(f'notify/{re}',
+                            message = message,
+                            data = data
+                        )
 
     def ios_event(self, event_name, data, kwargs) -> None:
         """ Listens for ios events configured with "siri message", sends notifications and changes mode.
@@ -61,7 +85,7 @@ class Notify_Mobiles(Hass):
                 message_title = message['notify_title'],
                 message_recipient = message['notify_reciever']
             )
-        self.fire_event("MODE_CHANGE", mode = message['message'] )
+        self.fire_event(self.event_listen_str, mode = message['message'] )
 
     def stateChanged(self, entity, attribute, old, new, kwargs) -> None:
         """ Listens for state changes and sends notification

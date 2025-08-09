@@ -7,7 +7,8 @@ __version__ = "0.1.0"
 from appdaemon.plugins.hass.hassapi import Hass
 import datetime
 import json
-
+from geopy.geocoders import Nominatim
+import holidays
 
 class WakeUp(Hass):
 
@@ -15,85 +16,82 @@ class WakeUp(Hass):
 
         # Namespaces for HASS and MQTT
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
-        self.MQTT_namespace:str = self.args.get('MQTT_namespace', 'default')
+        self.MQTT_namespace:str = self.args.get('MQTT_namespace', 'mqtt')
         self.mqtt = None
 
         self.music_handler = None
         self.light_run_handler = None
-        if 'workday' in self.args:
-            self.workday = self.args['workday']
-        else:
-            self.workday = 'binary_sensor.workday_sensor'
-            if not self.entity_exists(self.get_entity(self.workday)):
-                self.call_service("state/set",
-                    entity_id = self.workday,
-                    attributes = {'friendly_name' : 'Workday'},
-                    state = 'on',
-                    namespace = self.HASS_namespace
-                )
-                self.log(
-                    "'workday' binary_sensor not defined in app configuration. Will fire morning mode every day. "
-                    "https://www.home-assistant.io/integrations/workday/",
-                    level = 'INFO'
-                )
 
+        # Set up holliday
+        self.country_code = None
+        if 'country_code' in self.args:
+            self.country_code = self.args['country_code']
+        elif 'latitude' in self.config and 'longitude' in self.config:
+            try:
+                geolocator = Nominatim(user_agent="ElectricalPriceCalc")
+                location = geolocator.reverse((self.config['latitude'], self.config['longitude']), language='en')
+                self.country_code = location.raw['address'].get('country_code', 'NO')
+                self.log(f"Country code set to {self.country_code.upper()} in {self.name}", level = 'INFO')
+            except Exception as e:
+                self.log(f"Failed to get country code from geolocation: {e}", level='ERROR')
+
+        if self.country_code is not None:
+            try:
+                holiday_class = getattr(holidays, self.country_code.upper())
+                self.holidays = holiday_class(years=[datetime.date.today().year, datetime.date.today().year + 1])
+            except AttributeError:
+                self.log(f"Could not find holidays for {self.country_code}, defaulting to Norway.", level = 'INFO')
+                self.holidays = holidays.Norway(years=[datetime.date.today().year, datetime.date.today().year + 1])
+
+        # Set up vacation
         if 'vacation' in self.args:
-            self.away_state = self.args['vacation']
+            away_state = self.args['vacation']
         else:
-            self.away_state = 'input_boolean.vacation'
-            if not self.entity_exists(self.get_entity(self.away_state)):
-                self.call_service("state/set",
-                    entity_id = self.away_state,
-                    attributes = {'friendly_name' : 'Vacation'},
-                    state = 'off',
-                    namespace = self.HASS_namespace
-                )
-            else:
-                self.log(
-                    "'vacation' not configured. Using 'input_boolean.vacation' as default away state",
-                    level = 'WARNING'
-                )
+            away_state = None
+            if self.entity_exists('input_boolean.vacation',
+                namespace = self.HASS_namespace
+            ):
+                away_state = 'input_boolean.vacation'
+        if away_state is None:
+            self.away_state = False
+        else:
+            self.away_state = self.get_state(away_state, namespace = self.HASS_namespace)  == 'on'
+            self.listen_state(self._awayStateListen, away_state,
+                namespace = self.HASS_namespace
+            )
 
+        # Set up alarms
         if 'alarm_switch' in self.args:
-            self.alarm_switch = self.args['alarm_switch']
+            alarm_switch = self.args['alarm_switch']
         else:
-            self.alarm_switch = 'input_boolean.alarm_switch'
-            if not self.entity_exists(self.get_entity(self.alarm_switch)):
-                self.call_service("state/set",
-                    entity_id = self.alarm_switch,
-                    attributes = {'friendly_name' : 'Alarm switch'},
-                    state = 'on',
-                    namespace = self.HASS_namespace
-                )
-
-            else:
-                self.log(
-                    "'alarm_switch' not configured. Using 'input_boolean.alarm_switch' as default to play music every weekday",
-                    level = 'INFO'
-                )
+            alarm_switch = None
+            if self.entity_exists('input_boolean.alarm_switch',
+                namespace = self.HASS_namespace
+            ):
+                alarm_switch = 'input_boolean.alarm_switch'
+        if alarm_switch is None:
+            self.alarm_switch = False
+        else:
+            self.alarm_switch = self.get_state(alarm_switch, namespace = self.HASS_namespace)  == 'on'
+            self.listen_state(self._alarmStateListen, alarm_switch,
+                namespace = self.HASS_namespace
+            )
 
         if 'alarm_switch_non_work_day' in self.args:
-            self.alarm_switch_non_work_day = self.args['alarm_switch_non_work_day']
+            alarm_switch_non_work_day = self.args['alarm_switch_non_work_day']
         else:
-            self.alarm_switch_non_work_day = 'input_boolean.alarm_switch_non_work_day'
-            if not self.entity_exists(self.get_entity(self.alarm_switch_non_work_day)):
-                self.call_service("state/set",
-                    entity_id = self.alarm_switch_non_work_day,
-                    attributes = {'friendly_name' : 'Alarm switch Non work day'},
-                    state = 'off',
-                    namespace = self.HASS_namespace
-                )
-
-            elif 'workday' in self.args:
-                self.log(
-                    "'alarm_switch_non_work_day' not configured. Using 'input_boolean.alarm_switch_non_work_day' will not play music on weekends and holidays.",
-                    level = 'INFO'
-                )
-            else:
-                self.log(
-                    "'alarm_switch_non_work_day' not configured. Using 'input_boolean.alarm_switch_non_work_day' will not play music on weekends",
-                    level = 'INFO'
-                )
+            alarm_switch_non_work_day = None
+            if self.entity_exists('input_boolean.alarm_switch_non_work_day',
+                namespace = self.HASS_namespace
+            ):
+                alarm_switch_non_work_day = 'input_boolean.alarm_switch_non_work_day'
+        if alarm_switch_non_work_day is None:
+            self.alarm_switch_non_work_day = False
+        else:
+            self.alarm_switch_non_work_day = self.get_state(alarm_switch_non_work_day, namespace = self.HASS_namespace)  == 'on'
+            self.listen_state(self._alarm_non_work_dayStateListen, alarm_switch_non_work_day,
+                namespace = self.HASS_namespace
+            )
 
         self.media_player = self.args['media_player']
         self.playlist = self.args['playlist']
@@ -159,10 +157,10 @@ class WakeUp(Hass):
         """ Starts music list
         """
         if (
-            (self.get_state(self.workday) == 'on'
-            or self.get_state(self.alarm_switch_non_work_day, namespace = self.HASS_namespace) == 'on')
-            and self.get_state(self.away_state, namespace = self.HASS_namespace) == 'off'
-            and self.get_state(self.alarm_switch, namespace = self.HASS_namespace) == 'on'
+            (self._is_holiday(datetime.date.today())
+            or self.alarm_switch_non_work_day)
+            and not self.away_state
+            and self.alarm_switch
         ):
             for condition in self.conditions:
                 if not eval(condition):
@@ -185,10 +183,10 @@ class WakeUp(Hass):
         """ Turns on lights
         """
         if (
-            (self.get_state(self.workday) == 'on'
-            or self.get_state(self.alarm_switch_non_work_day, namespace = self.HASS_namespace) == 'on')
-            and self.get_state(self.away_state, namespace = self.HASS_namespace) == 'off'
-            and self.get_state(self.alarm_switch, namespace = self.HASS_namespace) == 'on'
+            (self._is_holiday(datetime.date.today())
+            or self.alarm_switch_non_work_day)
+            and not self.away_state
+            and self.alarm_switch
         ):
             for condition in self.conditions:
                 if not eval(condition):
@@ -205,3 +203,21 @@ class WakeUp(Hass):
                 self.turn_on(light, **self.light_data,
                     namespace = self.HASS_namespace
                 )
+
+    def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
+        """ Sets new indoor temp and away state after vacation switch
+        """
+        self.away_state = new == 'on'
+
+    def _alarmStateListen(self, entity, attribute, old, new, kwargs) -> None:
+        """ Sets new indoor temp and away state after vacation switch
+        """
+        self.alarm_switch = new == 'on'
+
+    def _alarm_non_work_dayStateListen(self, entity, attribute, old, new, kwargs) -> None:
+        """ Sets new indoor temp and away state after vacation switch
+        """
+        self.alarm_switch_non_work_day = new == 'on'
+
+    def _is_holiday(self, date):
+        return date in self.holidays
