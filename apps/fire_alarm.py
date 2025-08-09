@@ -19,7 +19,7 @@ FALSE_ALARM_TRANSLATE:str = 'false-alarm'
 class FireAlarm(Hass):
 
     def initialize(self):
-        self.HASS_namespace:str = self.args.get('main_namespace', 'default')
+        self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
         self.event_listen_str:str = 'MODE_CHANGE'
 
         language = self.args.get('lightwand_language', 'en')
@@ -40,13 +40,14 @@ class FireAlarm(Hass):
         self.notify_app = self.get_app(name_of_notify_app)
         self.notify_reciever = self.args['notify_reciever']
 
+        self.anyone_home = True
         mode_management_app_name = self.args.get('modeManagementApp', None)
         if mode_management_app_name is None:
             self.mode_management_app = None
         else:
             self.mode_management_app = self.get_app(mode_management_app_name)
             self.anyone_home = self.mode_management_app.anyone_home()
-        self.anyone_home = True
+        
 
         alarms = self.args.get('alarms', [])
         for alarm in alarms:

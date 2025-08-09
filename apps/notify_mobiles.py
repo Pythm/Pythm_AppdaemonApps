@@ -44,7 +44,7 @@ class Notify_Mobiles(Hass):
         message_recipient:str = kwargs.get('message_recipient', True)
         also_if_not_home:bool = kwargs.get('also_if_not_home', False)
         data:dict = kwargs.get('data', {'clickAction' : 'noAction'})
-    
+
         for r in self.recipients:
             if (
                 r['person'] in message_recipient
@@ -56,12 +56,24 @@ class Notify_Mobiles(Hass):
                 ):
                     if self.get_state(r['tracker']) != 'home':
                         continue
-                for re in r['reciever']:
-                    self.call_service(f'notify/{re}',
-                        title = message_title,
-                        message = message,
-                        data = data
-                    )
+
+                if not message == "clear_notification":
+                    if not 'clickAction' in data:
+                        data.update({'clickAction' : 'noAction'})
+                        self.log(f"Updated data with clickAction: {data}") ###
+
+                    for re in r['reciever']:
+                        self.call_service(f'notify/{re}',
+                            title = message_title,
+                            message = message,
+                            data = data
+                        )
+                else:
+                    for re in r['reciever']:
+                        self.call_service(f'notify/{re}',
+                            message = message,
+                            data = data
+                        )
 
     def ios_event(self, event_name, data, kwargs) -> None:
         """ Listens for ios events configured with "siri message", sends notifications and changes mode.

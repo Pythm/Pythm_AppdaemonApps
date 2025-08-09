@@ -5,7 +5,7 @@ Check if sensors(door/windows) are on/opened for more than a certain time
     @Pythm / https://github.com/Pythm
 
 """
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 from appdaemon import adbase as ad
 
@@ -19,15 +19,13 @@ class DoorGuard(ad.ADBase):
         self.notify_title = self.args['notify_title']
         self.notify_message = self.args['notify_message']
 
-            # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
-
         self.timer_handler = None
 
         # Get sensors
         self.sensors = self.args['sensors']
         for sensor in self.sensors:
-            self.ADapi.listen_state(self.openedForDuration, sensor['sensor'],
+            self.ADapi.listen_state(self._openedForDuration, sensor['sensor'],
                 new = 'on',
                 duration = sensor['duration'],
                 time_to_recheck = sensor['duration'],
@@ -37,16 +35,16 @@ class DoorGuard(ad.ADBase):
                 new = 'off',
                 namespace = self.HASS_namespace
             )
+        self.turn_off_notifications:str = 'turn_off_notification_' + str(self.name)
+        self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
 
-
-    def openedForDuration(self, entity, attribute, old, new, **kwargs) -> None:
+    def _openedForDuration(self, entity, attribute, old, new, **kwargs) -> None:
         """ Reacts to sensors being on for a certain duration
         """
         duration = int(kwargs['time_to_recheck'])
         self._check_if_closed(
             time_to_recheck = duration
         )
-
 
     def _check_if_closed(self, **kwargs):
         """ Checks if the sensors has been closed
@@ -63,7 +61,8 @@ class DoorGuard(ad.ADBase):
 
     def _send_notification(self):
         data = {
-            'tag' : str(self.name)
+            'tag' : str(self.name),
+            'actions' : [{ 'action' : self.turn_off_notifications, 'title' : 'Do not remind me', 'destructive' : True, 'icon' : 'sfsymbols:stop.circle.fill' }]
             }
         self.notify_app.send_notification(
             message = self.notify_message,
@@ -75,6 +74,16 @@ class DoorGuard(ad.ADBase):
 
     def _window_closed(self, entity, attribute, old, new, kwargs):
         self._cancel_timer_handler()
+        data = {
+            'tag' : str(self.name),
+            }
+        self.notify_app.send_notification(
+            message = "clear_notification",
+            message_title = self.notify_title,
+            message_recipient = self.notify_reciever,
+            also_if_not_home = False,
+            data = data
+        )
 
     def _cancel_timer_handler(self):
         if self.timer_handler is not None:
@@ -84,3 +93,18 @@ class DoorGuard(ad.ADBase):
                 except Exception as exc:
                     self.ADapi.log(f"Could not stop hander in doorGuard {self.timer_handler}. Exception: {exc}", level = 'DEBUG')
             self.timer_handler = None
+
+    def _notify_event(self, event_name, data, kwargs) -> None:
+        if data['action'] == self.turn_off_notifications:
+            self._cancel_timer_handler()
+
+            data = {
+                'tag' : str(self.name),
+                }
+            self.notify_app.send_notification(
+                message = "clear_notification",
+                message_title = self.notify_title,
+                message_recipient = self.notify_reciever,
+                also_if_not_home = False,
+                data = data
+            )

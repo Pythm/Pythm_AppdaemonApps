@@ -47,15 +47,15 @@ class Change_DNS(ad.ADBase):
         """
         if 'ip_sensor' in self.args:
             ip_sensor = self.args['ip_sensor']
-            self.ADapi.listen_state(self.ha_DNS_ip_sensor_changed, ip_sensor)
+            self.ADapi.listen_state(self._ha_DNS_ip_sensor_changed, ip_sensor)
             self.public_ip = self.ADapi.get_state(ip_sensor)
         else:
             self.ADapi.create_task(self._get_public_ip())
-            self.ADapi.run_hourly(self.checkPublicIPAddress, datetime.time(0, 10, 0))
+            self.ADapi.run_hourly(self.checkPublicIPAddress, "00:10:00")
 
         self.ADapi.create_task(self._get_current_DNS())
 
-    def ha_DNS_ip_sensor_changed(self, entity, attribute, old, new, kwargs) -> None:
+    def _ha_DNS_ip_sensor_changed(self, entity, attribute, old, new, kwargs) -> None:
         """ Listens for changes to HA dns sensor and updates cloudflare on change.
         """
         if (
@@ -71,7 +71,6 @@ class Change_DNS(ad.ADBase):
         """ Calls function get_public_ip
         """
         self.ADapi.create_task(self._get_public_ip())
-
 
     async def _get_public_ip(self) -> None:
         """ Fetches public IP address from api.ipify.org
@@ -95,7 +94,6 @@ class Change_DNS(ad.ADBase):
                             level='INFO'
                         )
                         api_result_str = None
-
         except Exception as e:
             self.ADapi.log(
                 f"Not able to get IP from ipify. "
@@ -115,7 +113,6 @@ class Change_DNS(ad.ADBase):
                 ) ###
                 self.ADapi.create_task(self._updateDNS())
 
-
     async def _get_current_DNS(self) -> None:
         """ Fetches current IP address from Cloudflare.
         """
@@ -134,7 +131,6 @@ class Change_DNS(ad.ADBase):
                             level='INFO'
                         )
                         cloudflare_ip = None
-
         except Exception as e:
             self.ADapi.log(f"Not able to get IP from cloudflare. "
                 f"Exception: {e}",
@@ -171,7 +167,6 @@ class Change_DNS(ad.ADBase):
                             "Exception was not provided.",
                             level='INFO'
                         )
-
         except Exception as e:
             self.ADapi.log(f"Not able to update IP to cloudflare. "
                 f"Exception: {e}",

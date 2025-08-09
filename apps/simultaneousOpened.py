@@ -160,3 +160,14 @@ class SimultaneousOpen(ad.ADBase):
                     level = 'DEBUG'
                 )
             self.handler = None
+
+        data = {
+            'tag' : str(self.name),
+            }
+        self.notify_app.send_notification(
+            message = "clear_notification",
+            message_title = self.notify_title,
+            message_recipient = self.notify_reciever,
+            also_if_not_home = False,
+            data = data
+        )
