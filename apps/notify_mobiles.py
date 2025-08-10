@@ -60,7 +60,6 @@ class Notify_Mobiles(Hass):
                 if not message == "clear_notification":
                     if not 'clickAction' in data:
                         data.update({'clickAction' : 'noAction'})
-                        self.log(f"Updated data with clickAction: {data}") ###
 
                     for re in r['reciever']:
                         self.call_service(f'notify/{re}',
