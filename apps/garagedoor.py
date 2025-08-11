@@ -134,7 +134,7 @@ class GarageDoor(Hass):
         if old != 'unavailable':
             self.open_garage_door()
             if 'switch' in item:
-                self.call_service('switch/turn_off',
+                self.call_service('input_boolean/turn_off',
                     entity_id = item['switch'],
                     namespace = self.HASS_namespace
                 )

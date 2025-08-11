@@ -102,8 +102,7 @@ class BathroomWindow(ad.ADBase):
                 self.listen_handler = self.ADapi.listen_state(self.humidityBelowAvg, self.humidity_sensor,
                     constrain_state=lambda x: float(x) <= self.humidity_average + 5,
                     time_to_recheck = duration,
-                    namespace = self.HASS_namespace,
-                    oneshot = True
+                    namespace = self.HASS_namespace
                 )
 
     def humidityBelowAvg(self, entity, attribute, old, new, kwargs):
