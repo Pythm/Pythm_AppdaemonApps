@@ -42,6 +42,7 @@ class BathroomWindow(ad.ADBase):
         
         # Set humidity data
         self.humidity_sensor = self.args.get('humidity', None)
+        self.humidity_offset = self.args.get('offset', 5)
         if self.humidity_sensor is not None:
             self.humidity_avg_list = []
             self.humidity = self.ADapi.get_state(self.humidity_sensor,
@@ -87,7 +88,7 @@ class BathroomWindow(ad.ADBase):
 
         if self.out_temp <= self.check_below_temp:
 
-            if self.humidity <= self.humidity_average + 5:
+            if self.humidity <= self.humidity_average + self.humidity_offset:
                 for sensor in self.sensors:
                     if self.ADapi.get_state(sensor['sensor'], namespace = self.HASS_namespace) == 'on':
                         self._send_notification()
@@ -96,7 +97,7 @@ class BathroomWindow(ad.ADBase):
             else:
                 self._cancel_listen_handler()
                 self.listen_handler = self.ADapi.listen_state(self.humidityBelowAvg, self.humidity_sensor,
-                    constrain_state=lambda x: float(x) <= self.humidity_average + 5,
+                    constrain_state=lambda x: float(x) <= self.humidity_average + self.humidity_offset,
                     time_to_recheck = duration,
                     namespace = self.HASS_namespace
                 )
