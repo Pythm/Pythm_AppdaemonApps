@@ -66,7 +66,6 @@ class FireAlarm(Hass):
     def alarmactivated(self, entity, attribute, old, new, kwargs) -> None:
         """ Reacts to on and off from smoke detectors and fire alarms
         """
-        self.log(f"Fire Alarm: {entity}. New: {new}. Old: {old}") ###
         if new == 'on':
             self.fire_event(self.event_listen_str, mode = FIRE_TRANSLATE)
             for item in self.turn_off_items:
@@ -104,3 +103,10 @@ class FireAlarm(Hass):
             and old == 'on'
         ):
             self.fire_event(self.event_listen_str, mode = FALSE_ALARM_TRANSLATE)
+        elif (
+            new not in ['unavailable', 'unknown']
+        ):
+            self.log(
+                f"Fire Alarm: {entity}. New: {new}. Old: {old}. Logic not implemented. Please open a issue with this info.",
+                level = 'INFO'
+            )
