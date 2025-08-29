@@ -15,7 +15,7 @@ class DoorGuard(ad.ADBase):
         self.ADapi = self.get_ad_api()
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
-        self.notify_reciever = self.args['notify_reciever']
+        self.notify_receiver = self.args['notify_receiver']
         self.notify_title = self.args['notify_title']
         self.notify_message = self.args['notify_message']
 
@@ -67,7 +67,7 @@ class DoorGuard(ad.ADBase):
         self.notify_app.send_notification(
             message = self.notify_message,
             message_title = self.notify_title,
-            message_recipient = self.notify_reciever,
+            message_recipient = self.notify_receiver,
             also_if_not_home = False,
             data = data
         )
@@ -80,7 +80,7 @@ class DoorGuard(ad.ADBase):
         self.notify_app.send_notification(
             message = "clear_notification",
             message_title = self.notify_title,
-            message_recipient = self.notify_reciever,
+            message_recipient = self.notify_receiver,
             also_if_not_home = False,
             data = data
         )
@@ -104,7 +104,7 @@ class DoorGuard(ad.ADBase):
             self.notify_app.send_notification(
                 message = "clear_notification",
                 message_title = self.notify_title,
-                message_recipient = self.notify_reciever,
+                message_recipient = self.notify_receiver,
                 also_if_not_home = False,
                 data = data
             )

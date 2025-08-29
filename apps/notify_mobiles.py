@@ -61,14 +61,14 @@ class Notify_Mobiles(Hass):
                     if not 'clickAction' in data:
                         data.update({'clickAction' : 'noAction'})
 
-                    for re in r['reciever']:
+                    for re in r['receiver']:
                         self.call_service(f'notify/{re}',
                             title = message_title,
                             message = message,
                             data = data
                         )
                 else:
-                    for re in r['reciever']:
+                    for re in r['receiver']:
                         self.call_service(f'notify/{re}',
                             message = message,
                             data = data
@@ -78,11 +78,11 @@ class Notify_Mobiles(Hass):
         """ Listens for ios events configured with "siri message", sends notifications and changes mode.
         """
         message = kwargs['message']
-        if 'notify_reciever' in message:
+        if 'notify_receiver' in message:
             self.send_notification(
                 message = message['notify_message'],
                 message_title = message['notify_title'],
-                message_recipient = message['notify_reciever']
+                message_recipient = message['notify_receiver']
             )
         self.fire_event(self.event_listen_str, mode = message['message'] )
 
@@ -90,9 +90,9 @@ class Notify_Mobiles(Hass):
         """ Listens for state changes and sends notification
         """
         message = kwargs['message']
-        if 'notify_reciever' in message:
+        if 'notify_receiver' in message:
             self.send_notification(
                 message = f"{message['notify_message']} {self.get_state(entity)}",
                 message_title = message['notify_title'],
-                message_recipient = message['notify_reciever']
+                message_recipient = message['notify_receiver']
             )

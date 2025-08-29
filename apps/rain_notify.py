@@ -14,7 +14,7 @@ class Rain_Notify(ad.ADBase):
         self.ADapi = self.get_ad_api()
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
-        self.notify_reciever = self.args['notify_reciever']
+        self.notify_receiver = self.args['notify_receiver']
 
             # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
@@ -43,7 +43,7 @@ class Rain_Notify(ad.ADBase):
             self.notify_app.send_notification(
                 message = f"It's raining and {self.windows_needed_to_be_closed} is open",
                 message_title = "Rain",
-                message_recipient = self.notify_reciever,
+                message_recipient = self.notify_receiver,
                 also_if_not_home = False
             )
             self.push_notice = False
@@ -57,7 +57,7 @@ class Rain_Notify(ad.ADBase):
             self.notify_app.send_notification(
                 message = f"It's windy and {self.windows_needed_to_be_closed} is open",
                 message_title = "Wind",
-                message_recipient = self.notify_reciever,
+                message_recipient = self.notify_receiver,
                 also_if_not_home = False
             )
             self.push_notice = False

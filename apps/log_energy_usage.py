@@ -20,7 +20,7 @@ class LogEnergyUsage(ad.ADBase):
         self.electricalPrice = self.ADapi.get_app(name_of_priceCalc_app)
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
-        self.notify_reciever = self.args['notify_reciever']
+        self.notify_receiver = self.args['notify_receiver']
 
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
         self.csv_folder = self.args.get('csv_folder_path', '/conf/db/')
@@ -55,7 +55,7 @@ class LogEnergyUsage(ad.ADBase):
                     self.notify_app.send_notification(
                         message = f"Consumption for {name} not available when creating usage logging. Please restart app when it is available",
                         message_title = "Log Energy Usage",
-                        message_recipient = self.notify_reciever,
+                        message_recipient = self.notify_receiver,
                         also_if_not_home = True
                     )
                 else:
@@ -115,7 +115,7 @@ class LogEnergyUsage(ad.ADBase):
                 self.notify_app.send_notification(
                     message = f"Consumption for {name} not available when logging usage",
                     message_title = "Log Energy Usage",
-                    message_recipient = self.notify_reciever,
+                    message_recipient = self.notify_receiver,
                     also_if_not_home = True
                 )
             else:
@@ -136,7 +136,7 @@ class LogEnergyUsage(ad.ADBase):
                                 self.notify_app.send_notification(
                                     message = f"Guest Consumption for {name} was {item['guestUsage']}",
                                     message_title = "Guest Energy Usage",
-                                    message_recipient = self.notify_reciever,
+                                    message_recipient = self.notify_receiver,
                                     also_if_not_home = True
                                 )
                                 item.update({'guestUsage': 0})
