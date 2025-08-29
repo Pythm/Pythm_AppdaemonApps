@@ -17,9 +17,9 @@ class SimultaneousOpen(ad.ADBase):
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
 
-        self.notify_reciever = self.args['notify_reciever']
-        self.notify_title = self.args['notify_title']
-        self.notify_message = self.args['notify_message']
+        self.notify_receiver = self.args['notify_receiver']
+        self.notify_title = self.args.get('notify_title', 'Both door and window is open')
+        self.notify_message = self.args.get('notify_message', 'Close either')
 
             # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
@@ -47,7 +47,7 @@ class SimultaneousOpen(ad.ADBase):
         self.simultaneous = self.args.get('simultaneous_sensor', None)
 
         # Set valid temperature sensor
-        self.check_below_temp = self.args.get('check_below_temp', 24)
+        self.check_below_temp = self.args.get('check_below_temp', 23)
         self.temperature_sensor = self.args.get('temperature_sensor', None)
 
     def openedForDuration(self, entity, attribute, old, new, kwargs) -> None:
@@ -84,7 +84,7 @@ class SimultaneousOpen(ad.ADBase):
                     self.notify_app.send_notification(
                         message = self.notify_message,
                         message_title = self.notify_title,
-                        message_recipient = self.notify_reciever,
+                        message_recipient = self.notify_receiver,
                         also_if_not_home = False,
                         data = data
                     )
@@ -139,7 +139,7 @@ class SimultaneousOpen(ad.ADBase):
                         self.notify_app.send_notification(
                             message = self.notify_message,
                             message_title = self.notify_title,
-                            message_recipient = self.notify_reciever,
+                            message_recipient = self.notify_receiver,
                             also_if_not_home = False,
                             data = data
                         )
@@ -167,7 +167,7 @@ class SimultaneousOpen(ad.ADBase):
         self.notify_app.send_notification(
             message = "clear_notification",
             message_title = self.notify_title,
-            message_recipient = self.notify_reciever,
+            message_recipient = self.notify_receiver,
             also_if_not_home = False,
             data = data
         )

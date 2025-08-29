@@ -15,7 +15,7 @@ class MediaStop(Hass):
         self.SensorHandler:list = []
 
         self.sensors = self.args.get('sensors', [])
-        self.mediaplayer = self.args['mediaplayer']
+        self.mediaplayer = self.args['media_player']
 
         if 'activate_switch' in self.args:
             self.activate_switch = self.args['activate_switch']

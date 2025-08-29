@@ -23,13 +23,6 @@ class Change_DNS(ad.ADBase):
         self.record_name:str = None
         self.proxy:bool = self.args.get('enable_proxy', True)
 
-        """ Links, authorization and ID's needed to connect to API to update cloudflare DNS with new IP.
-            - cloudflare_api_token. Generate one at your profile - Authentications. Use the Edit Zone DNS template.
-            - zone_id is found at the overview page at dash.cloudflare.com
-            - dns_record_id is the ID for each DNS record for the zone. Use "List DNS Records" Api call to find them.
-                https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records
-            
-        """
         self.cloudflare_api_token = self.args['cloudflare_api_token']
         self.zone_id = self.args['zone_id']
         self.dns_record_id = self.args['dns_record_id']
@@ -40,24 +33,17 @@ class Change_DNS(ad.ADBase):
           }
         self.reqUrl = "https://api.cloudflare.com/client/v4/zones/" + str(self.zone_id) + "/dns_records/" + str(self.dns_record_id)
 
-
-        """ Finding your public IP address
-            Will listen to changes in Home Assistant DNS IP integration if ip_sensor is configured.
-            If not it will check against 'api.ipify.org' every hour, and on initialize.
-        """
         if 'ip_sensor' in self.args:
             ip_sensor = self.args['ip_sensor']
             self.ADapi.listen_state(self._ha_DNS_ip_sensor_changed, ip_sensor)
             self.public_ip = self.ADapi.get_state(ip_sensor)
         else:
             self.ADapi.create_task(self._get_public_ip())
-            self.ADapi.run_hourly(self.checkPublicIPAddress, "00:10:00")
+            self.ADapi.run_hourly(self._checkPublicIPAddress, "00:10:00")
 
         self.ADapi.create_task(self._get_current_DNS())
 
     def _ha_DNS_ip_sensor_changed(self, entity, attribute, old, new, kwargs) -> None:
-        """ Listens for changes to HA dns sensor and updates cloudflare on change.
-        """
         if (
             new != 'unavailable'
             and new != 'unknown'
@@ -67,14 +53,10 @@ class Change_DNS(ad.ADBase):
             self.ADapi.log(f"Detected new IP: {self.public_ip}") ###
             self.ADapi.create_task(self._updateDNS())
 
-    def checkPublicIPAddress(self, kwargs) -> None:
-        """ Calls function get_public_ip
-        """
+    def _checkPublicIPAddress(self, kwargs) -> None:
         self.ADapi.create_task(self._get_public_ip())
 
     async def _get_public_ip(self) -> None:
-        """ Fetches public IP address from api.ipify.org
-        """
         try :
             async with aiohttp.ClientSession() as session:
                 async with session.get("https://api.ipify.org") as response:
@@ -114,8 +96,6 @@ class Change_DNS(ad.ADBase):
                 self.ADapi.create_task(self._updateDNS())
 
     async def _get_current_DNS(self) -> None:
-        """ Fetches current IP address from Cloudflare.
-        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(self.reqUrl, headers=self.headersList) as response:
@@ -146,8 +126,6 @@ class Change_DNS(ad.ADBase):
                 self.ADapi.create_task(self._updateDNS())
 
     async def _updateDNS(self) -> None:
-        """ Updates IP address to Cloudflare.
-        """
         try:
             async with aiohttp.ClientSession() as session:
                 payload = json.dumps({

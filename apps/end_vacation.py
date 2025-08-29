@@ -32,7 +32,7 @@ class endVacation(ad.ADBase):
                     self.vacation_handle = self.ADapi.run_at(self.endVacation,
                                                             vacation_end_time,
                                                             namespace = self.HASS_namespace)
-            self.ADapi.listen_state(self.endVacationAt,
+            self.ADapi.listen_state(self._endVacationAt,
                                     self.vacation_ends,
                                     duration = 60,
                                     namespace = self.HASS_namespace)
@@ -41,21 +41,19 @@ class endVacation(ad.ADBase):
             if self.ADapi.get_state(switch, namespace = self.HASS_namespace) == 'on':
                 self._create_listen_for_return_home()
             else: 
-                self.ADapi.listen_state(self.onVacation,
+                self.ADapi.listen_state(self._onVacation,
                                         switch,
                                         new = 'on',
                                         duration = 7200,
                                         namespace = self.HASS_namespace)
 
-    def onVacation(self, entity, attribute, old, new, kwargs) -> None:
-        """ Starts listening for presence change to end vacation when new state is home
-        """
+    def _onVacation(self, entity, attribute, old, new, kwargs) -> None:
         self._create_listen_for_return_home()
 
     def _create_listen_for_return_home(self):
         self._cancel_listen_handlers()
         for person in self.presence:
-            person_handler = self.ADapi.listen_state(self.presenceChange,
+            person_handler = self.ADapi.listen_state(self._presenceChange,
                                                      person,
                                                      new = 'home',
                                                      namespace = self.HASS_namespace
@@ -64,14 +62,10 @@ class endVacation(ad.ADBase):
                 {person : person_handler}
             )
 
-    def presenceChange(self, entity, attribute, old, new, kwargs) -> None:
-        """ Listens for presence change and ends vacations if new state is home
-        """
+    def _presenceChange(self, entity, attribute, old, new, kwargs) -> None:
         self.endVacation(0)
 
-    def endVacationAt(self, entity, attribute, old, new, kwargs) -> None:
-        """ Updates time for when to end vacation
-        """
+    def _endVacationAt(self, entity, attribute, old, new, kwargs) -> None:
         try:
             vacation_end_time = self.ADapi.parse_datetime(
                                     self.ADapi.get_state(self.vacation_ends,

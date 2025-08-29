@@ -95,7 +95,7 @@ class WakeUp(Hass):
 
         self.media_player = self.args['media_player']
         self.playlist = self.args['playlist']
-        self.volume = self.args.get('volume', 0)
+        self.volume = self.args.get('volume', None)
 
         self.wake_up_lights:list = self.args.get('wake_up_lights',[])
         self.wake_up_MQTTlights:list = self.args.get('wake_up_MQTTlights',[])
@@ -111,7 +111,7 @@ class WakeUp(Hass):
 
         if 'time' in self.args: # Home Assistant input_datetime helper
             wake_up_time = self.args['time']
-            self.listen_state(self.set_wake_up_time, wake_up_time,
+            self.listen_state(self._set_wake_up_time, wake_up_time,
                 namespace = self.HASS_namespace,
                 duration = 5
             )
@@ -128,9 +128,7 @@ class WakeUp(Hass):
 
         self.conditions:list = self.args.get('conditions',[])
 
-    def set_wake_up_time(self, entity, attribute, old, new, kwargs):
-        """ Sets new wake up time based on input
-        """
+    def _set_wake_up_time(self, entity, attribute, old, new, kwargs):
         if self.music_handler is not None:
             if self.timer_running(self.music_handler):
                 try:
@@ -166,7 +164,7 @@ class WakeUp(Hass):
             for condition in self.conditions:
                 if not eval(condition):
                     return False
-            if self.volume != 0:
+            if self.volume is not None:
                 self.call_service('media_player/volume_set',
                     entity_id = self.media_player,
                     volume_level = self.volume,
@@ -205,18 +203,12 @@ class WakeUp(Hass):
                 )
 
     def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
-        """ Sets new indoor temp and away state after vacation switch
-        """
         self.away_state = new == 'on'
 
     def _alarmStateListen(self, entity, attribute, old, new, kwargs) -> None:
-        """ Sets new indoor temp and away state after vacation switch
-        """
         self.alarm_switch = new == 'on'
 
     def _alarm_non_work_dayStateListen(self, entity, attribute, old, new, kwargs) -> None:
-        """ Sets new indoor temp and away state after vacation switch
-        """
         self.alarm_switch_non_work_day = new == 'on'
 
     def _is_holiday(self, date):

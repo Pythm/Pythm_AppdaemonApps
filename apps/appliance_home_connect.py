@@ -16,7 +16,7 @@ class HomeConnect(ad.ADBase):
         self.electricalPrice = self.ADapi.get_app('electricalPriceCalc')
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
-        self.notify_reciever = self.args['notify_reciever']
+        self.notify_receiver = self.args['notify_receiver']
 
             # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
@@ -82,13 +82,9 @@ class HomeConnect(ad.ADBase):
         self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
 
     def _remoteStartRequested(self, entity, attribute, old, new, kwargs) -> None:
-        """ Remote start signal received.
-        """
         self._findTimeForWashing(0)
 
     def _findTimeForWashing(self, kwargs) -> None:
-        """ Finds cheapest time to run appliance.
-        """
         data = {
                 'tag' : str(self.remote_start),
                 'actions' : [{ 'action' : self.turn_on_action_day, 'title' : 'Turn on dayprogram' },
@@ -111,7 +107,7 @@ class HomeConnect(ad.ADBase):
                         message = f"Starting {self.dayprogram['program']} "
                         f"at {startWashingAt}",
                         message_title = "Appliances",
-                        message_recipient = self.notify_reciever,
+                        message_recipient = self.notify_receiver,
                         also_if_not_home = False,
                         data = data
                     )
@@ -133,7 +129,7 @@ class HomeConnect(ad.ADBase):
                         message = f"Starting {self.nightprogram['program']} "
                         f"at {startWashingAt}",
                         message_title = "Appliances",
-                        message_recipient = self.notify_reciever,
+                        message_recipient = self.notify_receiver,
                         also_if_not_home = False,
                         data = data
                     )
