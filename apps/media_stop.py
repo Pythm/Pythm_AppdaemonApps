@@ -58,7 +58,6 @@ class MediaStop(Hass):
             state = self.get_state(player, namespace = self.HASS_namespace)
             
             if state not in {'off', 'standby', 'unavailable', 'idle'}:
-                self.log(f"{player} is {state}. Stopping Media") ###
                 self.call_service('media_player/media_stop',
                     entity_id = player,
                     namespace = self.HASS_namespace
