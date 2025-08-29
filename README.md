@@ -1,8 +1,3 @@
-
-Below is a **spell‑checked / grammar‑cleaned version** of your README.  
-I kept every piece of information you provided; only small wording, spelling, or formatting changes were made so the file still reads exactly as you intended.  For each change I added a short note (in brackets) so you can see what was altered and why.
-
-```markdown
 # 📦 Pythm's AppDaemon Apps  
 Welcome to Pythm's collection of **AppDaemon apps** tailored for automation, energy management, and smart‑home integration. These apps are designed for **patrons** and are part of a private repository. 
 
