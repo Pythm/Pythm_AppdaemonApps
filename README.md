@@ -198,8 +198,9 @@ vacation_end:
 **Function**: Notifies if the coffee machine is still on at 15:00.  
 
 **iOS Toggle**:  
-
 - Add an iOS toggle to manually turn the machine on/off from your iPhone or iWatch.  
+- Use an `input_datetime` to specify the time when the coffee machine should automatically turn on.  
+  Set the time to `00:00:00` to disable this automatic start.  
 
 ```yaml
 rancilio:
