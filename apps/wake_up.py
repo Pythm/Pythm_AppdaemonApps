@@ -70,7 +70,7 @@ class WakeUp(Hass):
             ):
                 alarm_switch = 'input_boolean.alarm_switch'
         if alarm_switch is None:
-            self.alarm_switch = False
+            self.alarm_switch = True
         else:
             self.alarm_switch = self.get_state(alarm_switch, namespace = self.HASS_namespace)  == 'on'
             self.listen_state(self._alarmStateListen, alarm_switch,
@@ -157,15 +157,15 @@ class WakeUp(Hass):
         """ Starts music list
         """
         if (
-            (self._is_holiday(datetime.date.today())
-            or self.alarm_switch_non_work_day)
-            and not self.away_state
-            and self.alarm_switch
+            not self.away_state and
+            (
+                (self._is_holiday(datetime.date.today()) and self.alarm_switch_non_work_day)
+                or (not self._is_holiday(datetime.date.today()) and self.alarm_switch)
+            )
         ):
             for condition in self.conditions:
                 if not eval(condition):
                     return False
-
             if self.volume != 0:
                 self.call_service('media_player/volume_set',
                     entity_id = self.media_player,

@@ -42,6 +42,7 @@ class BathroomWindow(ad.ADBase):
         
         # Set humidity data
         self.humidity_sensor = self.args.get('humidity', None)
+        self.humidity_offset = self.args.get('offset', 5)
         if self.humidity_sensor is not None:
             self.humidity_avg_list = []
             self.humidity = self.ADapi.get_state(self.humidity_sensor,
@@ -87,20 +88,16 @@ class BathroomWindow(ad.ADBase):
 
         if self.out_temp <= self.check_below_temp:
 
-            if self.humidity <= self.humidity_average + 10:
+            if self.humidity <= self.humidity_average + self.humidity_offset:
                 for sensor in self.sensors:
                     if self.ADapi.get_state(sensor['sensor'], namespace = self.HASS_namespace) == 'on':
                         self._send_notification()
                         self._reschedule_check(time_to_recheck = duration)
                         return
             else:
-                if self.listen_handler is not None:
-                    try:
-                        self.ADapi.cancel_listen_state(self.listen_handler)
-                    except Exception as exc:
-                        self.ADapi.log(f"Could not stop hander in Bathroom Window {self.listen_handler}. Exception: {exc}", level = 'INFO') # DEBUG
+                self._cancel_listen_handler()
                 self.listen_handler = self.ADapi.listen_state(self.humidityBelowAvg, self.humidity_sensor,
-                    constrain_state=lambda x: float(x) <= self.humidity_average + 10,
+                    constrain_state=lambda x: float(x) <= self.humidity_average + self.humidity_offset,
                     time_to_recheck = duration,
                     namespace = self.HASS_namespace
                 )
@@ -127,23 +124,18 @@ class BathroomWindow(ad.ADBase):
             }
         self.notify_app.send_notification(
             message = self.notify_message,
-            message_title = self.notify_title + " " + str(self.humidity),
+            message_title = self.notify_title,
             message_recipient = self.notify_reciever,
             also_if_not_home = False,
             data = data
         )
-        self.ADapi.log(f"Sent notificatio on bath window with humidity {self.humidity} below avg {self.humidity_average} +10") ###
 
     def _window_closed(self, entity, attribute, old, new, kwargs):
         for sensor in self.sensors:
             if self.ADapi.get_state(sensor['sensor'], namespace = self.HASS_namespace) == 'on':
                 return
-        if self.listen_handler is not None:
-            try:
-                self.ADapi.cancel_listen_state(self.listen_handler)
-            except Exception as exc:
-                self.ADapi.log(f"Could not stop hander in Batroom Window {self.listen_handler}. Exception: {exc}", level = 'INFO') # DEBUG
-            self.listen_handler = None
+        self._cancel_listen_handler()
+        self._cancel_timer_handler()
 
         data = {
             'tag' : str(self.name),
@@ -174,9 +166,18 @@ class BathroomWindow(ad.ADBase):
                     self.ADapi.log(f"Could not stop hander in {self.name}. Exception: {exc}", level = 'DEBUG')
             self.timer_handler = None
 
+    def _cancel_listen_handler(self):
+        if self.listen_handler is not None:
+            try:
+                self.ADapi.cancel_listen_state(self.listen_handler)
+            except Exception as exc:
+                self.ADapi.log(f"Could not stop hander in Batroom Window {self.listen_handler}. Exception: {exc}", level = 'DEBUG')
+            self.listen_handler = None
+
     def _notify_event(self, event_name, data, kwargs) -> None:
         if data['action'] == self.turn_off_notifications:
             self._cancel_timer_handler()
+            self._cancel_listen_handler()
 
             data = {
                 'tag' : str(self.name),
