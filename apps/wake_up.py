@@ -212,4 +212,7 @@ class WakeUp(Hass):
         self.alarm_switch_non_work_day = new == 'on'
 
     def _is_holiday(self, date):
-        return date in self.holidays
+        isNotWorkday:bool = date in self.holidays
+        if not isNotWorkday:
+            isNotWorkday = date.weekday() > 4
+        return isNotWorkday

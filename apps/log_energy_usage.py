@@ -204,7 +204,10 @@ class LogEnergyUsage(ad.ADBase):
 
         for item in self.items:
             name = item['name']
-            item_consumption = item['usage'] - float(last_month_data[name])
+            try:
+                item_consumption = item['usage'] - float(last_month_data[name])
+            except TypeError:
+                item_consumption = 0
             usage_data_total_montly.update({name : round(item_consumption,2)})
             if name == 'Total':
                 consumption_this_month = item_consumption
