@@ -20,6 +20,7 @@ class MediaStop(Hass):
         if 'activate_switch' in self.args:
             self.activate_switch = self.args['activate_switch']
             self.listen_state(self.autoTurnOff, self.activate_switch,
+                new = 'on',
                 namespace = self.HASS_namespace
             )
         else:
