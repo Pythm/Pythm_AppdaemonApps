@@ -112,6 +112,9 @@ class HomeConnect(ad.ADBase):
                         data = data
                     )
                     return
+            self.ADapi.run_in(self.startWashing, 10,
+                program = self.dayprogram['program']
+            )
         else:
             # Run during nighttime
             startWashingAt, est_endTime, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
@@ -134,9 +137,9 @@ class HomeConnect(ad.ADBase):
                         data = data
                     )
                     return
-        self.ADapi.run_in(self.startWashing, 10,
-            program = self.nightprogram['program']
-        )
+            self.ADapi.run_in(self.startWashing, 10,
+                program = self.nightprogram['program']
+            )
 
     def startWashing(self, **kwargs) -> None:
         """ Starts program on appliance
