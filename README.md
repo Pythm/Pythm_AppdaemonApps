@@ -301,6 +301,24 @@ log_energy_usage:
 
 ---
 
+### 🎵 `media_pause`  
+**Function**: Pauses media players when the associated sensor becomes inactive (e.g., when a presence sensor detects absence).
+
+```yaml
+pause_nathaniel_roon:
+  module: media_pause
+  class: MediaPause
+  sensors:
+    - binary_sensor.presence_sensor_rom
+  media_player:
+    - media_player.roon
+  # Use AppDaemon's built-in constraints to define when the app runs
+  constrain_start_time: "07:30:00"
+  constrain_end_time: "20:00:00"
+```
+
+---
+
 ### 🚫 `media_stop`  
 **Function**: Stops media players when a sensor (e.g., doorbell) is triggered.  
 
