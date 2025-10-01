@@ -66,7 +66,7 @@ dishwasher:
 ---
 
 ### 🧺 `appliance_notify`  
-**Function**: Notifies when an appliance finishes (based on power sensor).  
+**Function**: Notifies when an appliance finishes (based on power sensor). If it finishes during the time window defined by turn_off_after and turn_off_before, the app automatically turns off the switch to prevent beeping noises (e.g., from a tumble dryer).
 
 ```yaml
 tumbledryer:
@@ -80,6 +80,8 @@ tumbledryer:
   notify_title: 'Tumbledryer'
   notify_message: 'Tumbledryer is finished'
   dryer_switch: switch.tumbledryer # Enables long press notification to turn off
+  turn_off_after: '22:00:00'
+  turn_off_before: '07:00:00'
   dryer_power: sensor.tumbledryer_power
 ```
 

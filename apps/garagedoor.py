@@ -74,10 +74,10 @@ class GarageDoor(Hass):
         # Listens for mode events
         self.listen_event(self.mode_event, self.event_listen_str, namespace = self.HASS_namespace)
 
-    def mode_event(self, event_name, data, kwargs) -> None:
+    def mode_event(self, event_name, data, **kwargs) -> None:
         """ Listens to mode events and reacts on night and away.
         """
-        if data['mode'] in [AWAY_TRANSLATE, NIGHT_TRANSLATE]:
+        if data['mode'] in (AWAY_TRANSLATE, NIGHT_TRANSLATE):
             if self.get_state(self.garage,
                               namespace = self.namespace) != 'closed':
                 data = {
@@ -96,7 +96,7 @@ class GarageDoor(Hass):
                     data = data
                 )
 
-    def _ios_open_garage(self, event_name, data, kwargs) -> None:
+    def _ios_open_garage(self, event_name, data, **kwargs) -> None:
         self.open_garage_door()
 
     def open_garage_door(self):
@@ -104,7 +104,7 @@ class GarageDoor(Hass):
                           entity_id = self.garage,
                           namespace = self.HASS_namespace)
 
-    def _ios_close_garage(self, event_name, data, kwargs) -> None:
+    def _ios_close_garage(self, event_name, data, **kwargs) -> None:
         self.close_garage_door()
 
     def close_garage_door(self):
@@ -151,7 +151,7 @@ class GarageDoor(Hass):
                 )
             item.update({'handler' : None})
 
-    def _notify_event(self, event_name, data, kwargs) -> None:
+    def _notify_event(self, event_name, data, **kwargs) -> None:
         if data['action'] == self.close_garagedoor_action:
             self.close_garage_door()
 

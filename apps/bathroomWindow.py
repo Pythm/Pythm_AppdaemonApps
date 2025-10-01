@@ -68,11 +68,9 @@ class BathroomWindow(ad.ADBase):
             namespace = self.HASS_namespace
         )
 
-    def _weather_event(self, event_name, data, kwargs) -> None:
-        try:
-            self.out_temp = float(data['temp'])
-        except ValueError:
-            return
+    def _weather_event(self, event_name, data, **kwargs) -> None:
+        self.out_temp = float(data['temp'])
+
 
     def _has_been_opened_for_duration(self, entity, attribute, old, new, kwargs) -> None:
         """ Checks related to windows and humidity sensors
@@ -174,7 +172,7 @@ class BathroomWindow(ad.ADBase):
                 self.ADapi.log(f"Could not stop hander in Batroom Window {self.listen_handler}. Exception: {exc}", level = 'DEBUG')
             self.listen_handler = None
 
-    def _notify_event(self, event_name, data, kwargs) -> None:
+    def _notify_event(self, event_name, data, **kwargs) -> None:
         if data['action'] == self.turn_off_notifications:
             self._cancel_timer_handler()
             self._cancel_listen_handler()

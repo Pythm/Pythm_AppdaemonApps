@@ -168,7 +168,7 @@ class HomeConnect(ad.ADBase):
     def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
         self.away_state = new == 'on'
 
-    def _notify_event(self, event_name, data, kwargs) -> None:
+    def _notify_event(self, event_name, data, **kwargs) -> None:
         program = None
 
         match data['action']:

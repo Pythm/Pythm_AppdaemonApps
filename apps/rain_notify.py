@@ -32,11 +32,11 @@ class Rain_Notify(ad.ADBase):
             namespace = self.HASS_namespace
         )
 
-    def weather_event(self, event_name, data, kwargs) -> None:
+    def weather_event(self, event_name, data, **kwargs) -> None:
         """ Listens for weather change from the weather app
         """
         if (
-            data['rain'] >= self.rain_amount
+            float(data['rain']) >= self.rain_amount
             and self.windowsopened() > 0
             and self.push_notice
         ):
@@ -50,7 +50,7 @@ class Rain_Notify(ad.ADBase):
             self.ADapi.run_in(self.resetNotify, 10800)
 
         if (
-            data['wind'] >= self.anemometer_speed
+            float(data['wind']) >= self.anemometer_speed
             and self.windowsopened() > 0
             and self.push_notice
         ):

@@ -66,7 +66,7 @@ class EspressoMachine(Hass):
                               entity_id = self.espresso_machine,
                               namespace = self.HASS_namespace)
 
-    def _ios_event(self, event_name, data, kwargs) -> None:
+    def _ios_event(self, event_name, data, **kwargs) -> None:
         if self.get_state(self.espresso_machine, namespace = self.HASS_namespace) == 'off':
             if self.now_is_between('06:00:00', '14:30:00'):
                 self.call_service('switch/turn_on',
@@ -91,7 +91,7 @@ class EspressoMachine(Hass):
                 data = data
             )
 
-    def _notify_event(self, event_name, data, kwargs) -> None:
+    def _notify_event(self, event_name, data, **kwargs) -> None:
         if data['action'] == self.turn_off_action:
             self.call_service('switch/turn_off',
                 entity_id = self.espresso_machine,
