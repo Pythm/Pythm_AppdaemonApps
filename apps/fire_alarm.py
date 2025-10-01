@@ -102,7 +102,7 @@ class FireAlarm(Hass):
         ):
             self.fire_event(self.event_listen_str, mode = FALSE_ALARM_TRANSLATE)
         elif (
-            new not in ['unavailable', 'unknown']
+            new not in ('unavailable', 'unknown')
         ):
             self.log(
                 f"Fire Alarm: {entity}. New: {new}. Old: {old}. Logic not implemented. Please open a issue with this info.",

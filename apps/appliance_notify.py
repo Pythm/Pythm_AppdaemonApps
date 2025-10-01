@@ -23,6 +23,8 @@ class Dryer(Hass):
         if self.dryer_switch is not None:
             self.turn_off_action:str = 'turn_off_' + str(self.dryer_switch)
             self.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
+            self.auto_turn_off_after = self.args.get('turn_off_after', '22:00:00')
+            self.auto_turn_off_before = self.args.get('turn_off_before', '07:00:00')
         self.dryer_power = self.args['dryer_power']
 
         self.listen_state(self._dryer_is_running, self.dryer_power,
@@ -46,13 +48,19 @@ class Dryer(Hass):
         """ Reacts to powerconsumption falling and notifies.
         """
         data = {
-            'tag' : str(self.dryer_switch),
+            'tag' : str(self.name),
             }
         if self.dryer_switch is not None:
             data = {
                 'tag' : str(self.dryer_switch),
                 'actions' : [{ 'action' : self.turn_off_action, 'title' : 'Turn Off', 'destructive' : True, 'icon' : 'sfsymbols:stop.circle.fill' }]
                 }
+
+            if self.now_is_between(self.auto_turn_off_after, self.auto_turn_off_before):
+                self.call_service('switch/turn_off',
+                    entity_id = self.dryer_switch,
+                    namespace = self.HASS_namespace
+                )
         self.notify_app.send_notification(
             message = self.notify_message,
             message_title = self.notify_title,
@@ -67,7 +75,7 @@ class Dryer(Hass):
             namespace = self.HASS_namespace
         )
 
-    def _notify_event(self, event_name, data, kwargs) -> None:
+    def _notify_event(self, event_name, data, **kwargs) -> None:
         if data['action'] == self.turn_off_action:
             self.call_service('switch/turn_off',
                 entity_id = self.dryer_switch,

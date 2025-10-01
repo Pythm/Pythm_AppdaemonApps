@@ -94,7 +94,7 @@ class DoorGuard(ad.ADBase):
                     self.ADapi.log(f"Could not stop hander in doorGuard {self.timer_handler}. Exception: {exc}", level = 'DEBUG')
             self.timer_handler = None
 
-    def _notify_event(self, event_name, data, kwargs) -> None:
+    def _notify_event(self, event_name, data, **kwargs) -> None:
         if data['action'] == self.turn_off_notifications:
             self._cancel_timer_handler()
 

@@ -74,7 +74,7 @@ class Notify_Mobiles(Hass):
                             data = data
                         )
 
-    def ios_event(self, event_name, data, kwargs) -> None:
+    def ios_event(self, event_name, data, **kwargs) -> None:
         """ Listens for ios events configured with "siri message", sends notifications and changes mode.
         """
         message = kwargs['message']
