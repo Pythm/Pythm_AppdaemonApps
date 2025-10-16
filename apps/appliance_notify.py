@@ -27,12 +27,7 @@ class Dryer(Hass):
             self.auto_turn_off_before = self.args.get('turn_off_before', '07:00:00')
         self.dryer_power = self.args['dryer_power']
 
-        self.listen_state(self._dryer_is_running, self.dryer_power,
-            constrain_state=lambda x: float(x) > 100,
-            duration = 30,
-            oneshot = True,
-            namespace = self.HASS_namespace
-        )
+        self.start_listen_state()
 
     def _dryer_is_running(self, entity, attribute, old, new, kwargs):
         """ Reacts to powerconsumption and waiting for it to fall again
@@ -57,10 +52,8 @@ class Dryer(Hass):
                 }
 
             if self.now_is_between(self.auto_turn_off_after, self.auto_turn_off_before):
-                self.call_service('switch/turn_off',
-                    entity_id = self.dryer_switch,
-                    namespace = self.HASS_namespace
-                )
+                self.turn_off_appliance()
+
         self.notify_app.send_notification(
             message = self.notify_message,
             message_title = self.notify_title,
@@ -68,26 +61,29 @@ class Dryer(Hass):
             also_if_not_home = True,
             data = data
         )
+        self.start_listen_state()
+
+    def _notify_event(self, event_name, data, **kwargs) -> None:
+        if data['action'] == self.turn_off_action:
+            self.turn_off_appliance()
+
+    def turn_off_appliance(self) -> None:
+        self.call_service('switch/turn_off',
+            entity_id = self.dryer_switch,
+            namespace = self.HASS_namespace
+        )
+        self.run_in(self.turn_back_on, 60)
+    
+    def turn_back_on(self, kwargs) -> None:
+        self.call_service('switch/turn_on',
+            entity_id = self.dryer_switch,
+            namespace = self.HASS_namespace
+        )
+
+    def start_listen_state(self) -> None:
         self.listen_state(self._dryer_is_running, self.dryer_power,
             constrain_state=lambda x: float(x) > 100,
             duration = 30,
             oneshot = True,
             namespace = self.HASS_namespace
         )
-
-    def _notify_event(self, event_name, data, **kwargs) -> None:
-        if data['action'] == self.turn_off_action:
-            self.call_service('switch/turn_off',
-                entity_id = self.dryer_switch,
-                namespace = self.HASS_namespace
-            )
-            data = {
-                'tag' : str(self.dryer_switch),
-                }
-            self.notify_app.send_notification(
-                message = "clear_notification",
-                message_title = self.notify_title,
-                message_recipient = self.notify_receiver,
-                also_if_not_home = True,
-                data = data
-            )
