@@ -2,7 +2,7 @@
 
     @Pythm / https://github.com/Pythm
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from appdaemon.plugins.hass.hassapi import Hass
 import datetime
@@ -44,21 +44,16 @@ class WakeUp(Hass):
                 self.holidays = holidays.Norway(years=[datetime.date.today().year, datetime.date.today().year + 1])
 
         # Set up vacation
-        if 'vacation' in self.args:
-            away_state = self.args['vacation']
-        else:
-            away_state = None
-            if self.entity_exists('input_boolean.vacation',
-                namespace = self.HASS_namespace
-            ):
-                away_state = 'input_boolean.vacation'
-        if away_state is None:
-            self.away_state = False
-        else:
-            self.away_state = self.get_state(away_state, namespace = self.HASS_namespace)  == 'on'
-            self.listen_state(self._awayStateListen, away_state,
-                namespace = self.HASS_namespace
+        vacation = self.args.get('vacation', 'input_boolean.vacation')
+        if self.ADapi.entity_exists(vacation, namespace=self.HASS_namespace):
+            self.away_state = self.ADapi.get_state(vacation, namespace=self.HASS_namespace) == 'on'
+            self.ADapi.listen_state(
+                self._awayStateListen,
+                vacation,
+                namespace=self.HASS_namespace
             )
+        else:
+            self.away_state = False
 
         # Set up alarms
         if 'alarm_switch' in self.args:
