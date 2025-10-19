@@ -4,7 +4,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from appdaemon import adbase as ad
 import datetime
@@ -21,18 +21,16 @@ class HomeConnect(ad.ADBase):
             # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
 
-        if 'vacation' in self.args:
-            self.vacation = self.args['vacation']
-            self.away_state = self.ADapi.get_state(self.vacation, namespace = self.HASS_namespace)  == 'on'
-            self.ADapi.listen_state(self._awayStateListen, self.vacation,
-                namespace = self.HASS_namespace
+        vacation = self.args.get('vacation', 'input_boolean.vacation')
+        if self.ADapi.entity_exists(vacation, namespace=self.HASS_namespace):
+            self.away_state = self.ADapi.get_state(vacation, namespace=self.HASS_namespace) == 'on'
+            self.ADapi.listen_state(
+                self._awayStateListen,
+                vacation,
+                namespace=self.HASS_namespace
             )
-        elif self.ADapi.entity_exists(self.vacation, namespace = self.HASS_namespace):
-            self.vacation = 'input_boolean.vacation'
-            self.away_state = self.ADapi.get_state(self.vacation, namespace = self.HASS_namespace)  == 'on'
-            self.ADapi.listen_state(self._awayStateListen, self.vacation,
-                namespace = self.HASS_namespace
-            )
+        else:
+            self.away_state = False
 
             # Program setup
         self.remote_start = self.args['remote_start']
@@ -55,6 +53,8 @@ class HomeConnect(ad.ADBase):
                 self.dayprogram.update(
                     {'running_time': 3}
                 )
+        elif self.nightprogram:
+            self.dayprogram = self.nightprogram
         else:
             self.dayprogram = None
             self.ADapi.log(

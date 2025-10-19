@@ -31,6 +31,12 @@ HASS_namespace: default
 MQTT_namespace: mqtt
 ```
 
+The default vacation helper from Home assistant is `input_boolean.vacation` in all my apps, please configure with
+```yaml
+  vacation: input_boolean.vacation
+```
+in the apps that relies on setting a vacation mode.
+
 ---
 
 ## 📦 App List  
