@@ -2,7 +2,7 @@
 
     @Pythm / https://github.com/Pythm
 """
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from appdaemon import adbase as ad
 
@@ -22,13 +22,15 @@ class endVacation(ad.ADBase):
         self.vacation_ends = self.args.get('vacation_ends', None)
         if self.vacation_ends:
             try:
-                vacation_end_time = self.ADapi.parse_datetime(
-                                        self.ADapi.get_state(self.vacation_ends,
-                                                             namespace = self.HASS_namespace))
+                vacation_end_time = self.ADapi.get_state(self.vacation_ends,
+                                                         namespace = self.HASS_namespace)
             except TypeError:
+                self.ADapi.log(
+                    f"TypeError setting vacation ending for {self.name}. Error: {t}",
+                    level='INFO')
                 pass
             else:
-                if self.ADapi.datetime() < vacation_end_time:
+                if self.ADapi.datetime(aware=True) < self.ADapi.parse_datetime(vacation_end_time, aware=True):
                     self.vacation_handle = self.ADapi.run_at(self.endVacation,
                                                             vacation_end_time,
                                                             namespace = self.HASS_namespace)
@@ -67,12 +69,14 @@ class endVacation(ad.ADBase):
 
     def _endVacationAt(self, entity, attribute, old, new, kwargs) -> None:
         try:
-            vacation_end_time = self.ADapi.parse_datetime(
-                                    self.ADapi.get_state(self.vacation_ends,
-                                                            namespace = self.HASS_namespace))
-        except TypeError:
+            vacation_end_time = self.ADapi.get_state(self.vacation_ends,
+                                                     namespace = self.HASS_namespace)
+        except TypeError as t:
+            self.ADapi.log(
+                f"TypeError setting vacation ending for {self.name}. Error: {t}",
+                level='INFO')
             return
-        if self.ADapi.datetime() < vacation_end_time:
+        if self.ADapi.datetime(aware=True) < self.ADapi.parse_datetime(vacation_end_time, aware=True):
             self._cancel_vacation_handle()
             self.vacation_handle = self.ADapi.run_at(self.endVacation, vacation_end_time)
 

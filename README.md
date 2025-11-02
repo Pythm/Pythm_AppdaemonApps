@@ -171,12 +171,20 @@ fridge:
 doorbell:
   module: doorbell
   class: Doorbell
+  target_directory: '/var/lib/docker/volumes/hass_config/_data/www/doorbell/'
+  local_directory: '/local/doorbell/'
   dependencies:
     - notify_mobiles
   notify_receiver:
     - Me
     - Mykid
   doorbell: binary_sensor.front_door_ding
+  chime: number.smart_poe_chime_volume
+  daytime_volume: 80
+  daytime_start: 06:00:00
+  nighttime_volume: 30
+  daytime_stop: 22:00:00
+
   camera: camera.front_door_live_view
   media_player:
     - media_player.appleTV
@@ -262,6 +270,8 @@ firealarm:
 garagecover:
   module: garagedoor
   class: GarageDoor
+  target_directory: '/var/lib/docker/volumes/hass_config/_data/www/doorbell/'
+  local_directory: '/local/doorbell/'
   dependencies:
     - notify_mobiles
   garage: cover.garage_door
