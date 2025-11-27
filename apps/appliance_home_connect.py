@@ -92,7 +92,7 @@ class HomeConnect(ad.ADBase):
                 }
         if self.ADapi.now_is_between(str(self.dayruntime.time()), str(self.dayruntime_stop.time())):
             # Run during daytime
-            startWashingAt, est_endTime, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
+            startWashingAt, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
                 hoursTotal = self.dayprogram['running_time'],
                 calculateBeforeNextDayPrices = True,
                 finishByHour = 16
@@ -117,7 +117,7 @@ class HomeConnect(ad.ADBase):
             )
         else:
             # Run during nighttime
-            startWashingAt, est_endTime, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
+            startWashingAt, EndAt, price = self.electricalPrice.get_Continuous_Cheapest_Time(
                 hoursTotal = self.nightprogram['running_time'],
                 calculateBeforeNextDayPrices = False,
                 finishByHour = 8
