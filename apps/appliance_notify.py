@@ -30,18 +30,18 @@ class Dryer(Hass):
         self.start_listen_state()
 
     def _dryer_is_running(self, entity, attribute, old, new, kwargs):
-        """ Reacts to powerconsumption and waiting for it to fall again
-        """
-        self.listen_state(self.dryer_is_stopping, self.dryer_power,
+        """ Reacts to powerconsumption and waiting for it to fall again """
+
+        self.listen_state(self._dryer_is_stopping, self.dryer_power,
             constrain_state=lambda x: float(x) < 15,
             duration = 30,
             oneshot = True,
             namespace = self.HASS_namespace
         )
 
-    def dryer_is_stopping(self, entity, attribute, old, new, kwargs):
-        """ Reacts to powerconsumption falling and notifies.
-        """
+    def _dryer_is_stopping(self, entity, attribute, old, new, kwargs):
+        """ Reacts to powerconsumption falling and notifies """
+
         data = {
             'tag' : str(self.name),
             }

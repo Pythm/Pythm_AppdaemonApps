@@ -19,7 +19,6 @@ class EspressoMachine(Hass):
         self.notify_title = self.args.get('notify_title', 'Coffee')
         self.notify_message = self.args.get('notify_message', 'Coffee machine is still on')
 
-            # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
         self.handler = None
 

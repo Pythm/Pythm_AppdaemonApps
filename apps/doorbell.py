@@ -47,8 +47,8 @@ class Doorbell(ad.ADBase):
         self.media_player = self.args.get('media_player', [])
 
     def _doorRing(self, entity, attribute, old, new, kwargs) -> None:
-        """ Sends snapshot from video device on doorbell ring to mobile devices.
-        """
+        """ Sends snapshot from video device on doorbell ring to mobile devices """
+
         if self.camera is not None:
             local_path = save_image_with_timestamp(
                                                   ADapi = self.ADapi,
@@ -73,11 +73,16 @@ class Doorbell(ad.ADBase):
         )
 
     def playStreamOnMediaPlayers(self):
-        """ Plays stream form video device to media players
-        """
+        """ Plays stream form video device to media players """
+
         for player in self.media_player:
             state = self.ADapi.get_state(player, namespace = self.HASS_namespace)
-            if state not in {'off', 'standby'}:
+            if state not in ('off', 'standby'):
+                if state in ('playing'):
+                    self.call_service('media_player/media_stop',
+                        entity_id = player,
+                        namespace = self.HASS_namespace
+                    )
                 self.ADapi.call_service(
                     'camera/play_stream',
                     media_player = player,

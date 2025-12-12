@@ -147,8 +147,8 @@ class WakeUp(Hass):
             self.light_run_handler = self.run_daily(self.wake_up_with_lights, timestring)
 
     def wake_up_music(self, kwargs):
-        """ Starts music list
-        """
+        """ Starts music list """
+
         if (
             not self.away_state and
             (
@@ -173,8 +173,8 @@ class WakeUp(Hass):
             )
 
     def wake_up_with_lights(self, kwargs):
-        """ Turns on lights
-        """
+        """ Turns on lights """
+
         if (
             (self._is_holiday(datetime.date.today())
             or self.alarm_switch_non_work_day)

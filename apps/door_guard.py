@@ -39,16 +39,12 @@ class DoorGuard(ad.ADBase):
         self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
 
     def _openedForDuration(self, entity, attribute, old, new, **kwargs) -> None:
-        """ Reacts to sensors being on for a certain duration
-        """
         duration = int(kwargs['time_to_recheck'])
         self._check_if_closed(
             time_to_recheck = duration
         )
 
     def _check_if_closed(self, **kwargs):
-        """ Checks if the sensors has been closed
-        """
         duration = int(kwargs['time_to_recheck'])
         for sensor in self.sensors:
             if self.ADapi.get_state(sensor['sensor'], namespace = self.HASS_namespace) == 'on':

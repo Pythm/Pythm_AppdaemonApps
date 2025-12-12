@@ -37,8 +37,8 @@ class Notify_Mobiles(Hass):
             )
 
     def send_notification(self, **kwargs) -> None:
-        """ Sends notification to recipients via Home Assistant notification.
-        """
+        """ Sends notification to recipients via Home Assistant notification """
+
         message:str = kwargs['message']
         message_title:str = kwargs.get('message_title', 'Home Assistant')
         message_recipient:str = kwargs.get('message_recipient', True)
@@ -75,8 +75,8 @@ class Notify_Mobiles(Hass):
                         )
 
     def ios_event(self, event_name, data, **kwargs) -> None:
-        """ Listens for ios events configured with "siri message", sends notifications and changes mode.
-        """
+        """ Listens for ios events configured with "siri message", sends notifications and changes mode """
+
         message = kwargs['message']
         if 'notify_receiver' in message:
             self.send_notification(
@@ -87,8 +87,8 @@ class Notify_Mobiles(Hass):
         self.fire_event(self.event_listen_str, mode = message['message'] )
 
     def stateChanged(self, entity, attribute, old, new, kwargs) -> None:
-        """ Listens for state changes and sends notification
-        """
+        """ Listens for state changes and sends notification """
+
         message = kwargs['message']
         if 'notify_receiver' in message:
             self.send_notification(

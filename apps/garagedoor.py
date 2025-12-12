@@ -65,11 +65,9 @@ class GarageDoor(ad.ADBase):
                                         namespace = self.HASS_namespace
                 )
                 if self.ADapi.get_state(item['switch'], namespace = self.HASS_namespace) == 'on':
-                    self._start_listen_to_auto_open_garagedoor(item = item,
-                                                               namespace = self.HASS_namespace)
+                    self._start_listen_to_auto_open_garagedoor(item = item)
             else:
-                self._start_listen_to_auto_open_garagedoor(item = item,
-                                                           namespace = self.HASS_namespace)
+                self._start_listen_to_auto_open_garagedoor(item = item)
 
         self.close_garagedoor_action:str = 'close_garagedoor_' + str(self.garage)
         self.camera = self.args.get('camera', None)
@@ -79,8 +77,8 @@ class GarageDoor(ad.ADBase):
         self.ADapi.listen_event(self.mode_event, self.event_listen_str, namespace = self.HASS_namespace)
 
     def mode_event(self, event_name, data, **kwargs) -> None:
-        """ Listens to mode events and reacts on night and away.
-        """
+        """ Listens to mode events and reacts on night and away """
+
         if data['mode'] in (AWAY_TRANSLATE, NIGHT_TRANSLATE):
             if self.ADapi.get_state(self.garage, namespace = self.namespace) != 'closed':
                 self.send_photo_notification()

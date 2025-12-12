@@ -11,7 +11,6 @@ class endVacation(ad.ADBase):
     def initialize(self):
         self.ADapi = self.get_ad_api()
 
-            # Namespaces
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
 
         self.listen_handle = {}
@@ -81,8 +80,6 @@ class endVacation(ad.ADBase):
             self.vacation_handle = self.ADapi.run_at(self.endVacation, vacation_end_time)
 
     def endVacation(self, kwargs) -> None:
-        """ Ends vacation by turning off switch
-        """
         for switch in self.vacation_switch:
             self.ADapi.call_service('input_boolean/turn_off',
                 entity_id = switch,

@@ -142,8 +142,8 @@ class HomeConnect(ad.ADBase):
             )
 
     def startWashing(self, **kwargs) -> None:
-        """ Starts program on appliance
-        """
+        """ Starts program on appliance """
+
         program = kwargs['program']
         if (
             self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) != program
