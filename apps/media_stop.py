@@ -31,8 +31,8 @@ class MediaStop(Hass):
                 )
 
     def autoTurnOff(self, entity, attribute, old, new, kwargs) -> None:
-        """ Starts listening for sensors to turn off media
-        """
+        """ Starts listening for sensors to turn off media """
+
         if new == 'on':
             for sensor in self.sensors:
                 handler = self.listen_state(self.StopMediaPlaying, sensor,
@@ -53,8 +53,8 @@ class MediaStop(Hass):
             self.SensorHandler = []
 
     def StopMediaPlaying(self, entity, attribute, old, new, kwargs) -> None:
-        """ Auto stops mediaplayer on sensor detection/activation
-        """
+        """ Auto stops mediaplayer on sensor detection/activation """
+
         for player in self.mediaplayer:
             state = self.get_state(player, namespace = self.HASS_namespace)
             

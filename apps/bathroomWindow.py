@@ -73,8 +73,8 @@ class BathroomWindow(ad.ADBase):
 
 
     def _has_been_opened_for_duration(self, entity, attribute, old, new, kwargs) -> None:
-        """ Checks related to windows and humidity sensors
-        """
+        """ Checks related to windows and humidity sensors """
+
         duration = int(kwargs['time_to_recheck'])
         self._cancel_timer_handler()
         self._checkHumidity(

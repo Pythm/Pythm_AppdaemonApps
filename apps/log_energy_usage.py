@@ -73,8 +73,8 @@ class LogEnergyUsage(ad.ADBase):
         #self.only_write_consumption_to_input_text(id = 'Leil')
 
     def terminate(self) -> None:
-        """ Writes consumption data to persisten storage before terminating app.
-        """
+        """ Writes consumption data to persisten storage before terminating app """
+
         ConsumptionData:dict = {}
         ConsumptionData.update({'Consumption' : self.usage_data_total})
         ConsumptionData.update({'Cost' : self.usage_data_daily_cost})
@@ -112,12 +112,12 @@ class LogEnergyUsage(ad.ADBase):
                 item.update({'usage': usage})
             except Exception as e:
                 self.ADapi.log(f"Consumption for {name} not available when logging usage: {e}", level = 'INFO')
-                self.notify_app.send_notification(
-                    message = f"Consumption for {name} not available when logging usage",
-                    message_title = "Log Energy Usage",
-                    message_recipient = self.notify_receiver,
-                    also_if_not_home = True
-                )
+                #self.notify_app.send_notification(
+                #    message = f"Consumption for {name} not available when logging usage",
+                #    message_title = "Log Energy Usage",
+                #    message_recipient = self.notify_receiver,
+                #    also_if_not_home = True
+                #)
             else:
                 # Usage cost every Hour:
                 item_price = float((item['usage'] - float(self.usage_data_total[name])) * price_now)
@@ -223,7 +223,6 @@ class LogEnergyUsage(ad.ADBase):
                 csv_writer_monthly = csv.DictWriter(csv_monthly, fieldnames=fieldnames, delimiter='\t')
                 csv_writer_monthly.writeheader()
 
-        # Skriv Kostnad
         usage_data_monthy_cost:dict = {}
         usage_data_monthy_cost.update({'Date' : last_month_date.strftime("%Y:%m")})
         usage_data_monthy_cost.update({'Price' : 0})

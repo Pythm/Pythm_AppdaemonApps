@@ -33,8 +33,8 @@ class Rain_Notify(ad.ADBase):
         )
 
     def weather_event(self, event_name, data, **kwargs) -> None:
-        """ Listens for weather change from the weather app
-        """
+        """ Listens for weather change from the weather app """
+
         if (
             float(data['rain']) >= self.rain_amount
             and self.windowsopened() > 0
@@ -64,8 +64,8 @@ class Rain_Notify(ad.ADBase):
             self.ADapi.run_in(self.resetNotify, 10800)
 
     def windowsopened(self) -> int:
-        """ Returns number of opened windows and creates a list of those open.
-        """
+        """ Returns number of opened windows and creates a list of those open """
+
         opened = 0
         self.windows_needed_to_be_closed = []
         for window in self.windowsensors:
@@ -77,6 +77,6 @@ class Rain_Notify(ad.ADBase):
         return opened
 
     def resetNotify(self, kwargs) -> None:
-        """ Reset the timeout to send notification again.
-        """
+        """ Reset the timeout to send notification again """
+
         self.push_notice = True

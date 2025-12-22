@@ -51,8 +51,6 @@ class SimultaneousOpen(ad.ADBase):
         self.temperature_sensor = self.args.get('temperature_sensor', None)
 
     def openedForDuration(self, entity, attribute, old, new, kwargs) -> None:
-        """ Window or door has been opened for a given duration. Will check if another window/door is opened
-        """
         duration = int(kwargs['time_to_recheck'])
         temp = 0
 
@@ -100,16 +98,12 @@ class SimultaneousOpen(ad.ADBase):
                 )
 
     def second_door_opened(self, entity, attribute, old, new, kwargs):
-        """ Reacts to the second door/window being opened
-        """
         duration = int(kwargs['time_to_recheck'])
         self.ADapi.run_in(self.recheck_second_door_opened, duration,
             time_to_recheck = duration
         )
 
     def recheck_second_door_opened(self, **kwargs):
-        """ Checks if the second door/window is still opened
-        """
         duration = int(kwargs['time_to_recheck'])
         
         temp:float = self.check_below_temp
@@ -149,8 +143,6 @@ class SimultaneousOpen(ad.ADBase):
                         return
 
     def cancelListenState(self, entity, attribute, old, new, kwargs):
-        """ Cancel listen state
-        """
         if self.handler is not None:
             try:
                 self.ADapi.cancel_listen_state(self.handler)

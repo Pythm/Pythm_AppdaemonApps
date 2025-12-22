@@ -25,8 +25,8 @@ class MediaPause(Hass):
             )
 
     def StopMediaPlaying(self, entity, attribute, old, new, kwargs) -> None:
-        """ Auto stops mediaplayer on sensor detection/activation
-        """
+        """ Auto stops mediaplayer on sensor detection/activation """
+
         for sensor in self.sensors:
             if self.get_state(sensor, namespace = self.HASS_namespace) == 'on':
                 break
@@ -50,8 +50,8 @@ class MediaPause(Hass):
 
 
     def StartMediaPlaying(self, entity, attribute, old, new, kwargs) -> None:
-        """ Auto starts mediaplayer on sensor detection/activation
-        """
+        """ Auto starts mediaplayer on sensor detection/activation """
+
         for player in self.mediaplayer:
             state = self.get_state(player, namespace = self.HASS_namespace)
             
