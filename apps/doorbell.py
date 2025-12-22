@@ -79,7 +79,7 @@ class Doorbell(ad.ADBase):
             state = self.ADapi.get_state(player, namespace = self.HASS_namespace)
             if state not in ('off', 'standby'):
                 if state in ('playing'):
-                    self.call_service('media_player/media_stop',
+                    self.ADapi.call_service('media_player/media_stop',
                         entity_id = player,
                         namespace = self.HASS_namespace
                     )

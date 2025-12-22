@@ -112,12 +112,12 @@ class LogEnergyUsage(ad.ADBase):
                 item.update({'usage': usage})
             except Exception as e:
                 self.ADapi.log(f"Consumption for {name} not available when logging usage: {e}", level = 'INFO')
-                self.notify_app.send_notification(
-                    message = f"Consumption for {name} not available when logging usage",
-                    message_title = "Log Energy Usage",
-                    message_recipient = self.notify_receiver,
-                    also_if_not_home = True
-                )
+                #self.notify_app.send_notification(
+                #    message = f"Consumption for {name} not available when logging usage",
+                #    message_title = "Log Energy Usage",
+                #    message_recipient = self.notify_receiver,
+                #    also_if_not_home = True
+                #)
             else:
                 # Usage cost every Hour:
                 item_price = float((item['usage'] - float(self.usage_data_total[name])) * price_now)
