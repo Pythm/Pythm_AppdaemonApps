@@ -4,7 +4,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from appdaemon import adbase as ad
 import datetime
@@ -166,7 +166,11 @@ class HomeConnect(ad.ADBase):
             self.handler = None
 
     def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
-        self.away_state = new == 'on'
+        if new == 'on':
+            self.away_state = True
+        else:
+            self.away_state = False
+            self._findTimeForWashing(0)
 
     def _notify_event(self, event_name, data, **kwargs) -> None:
         program = None
