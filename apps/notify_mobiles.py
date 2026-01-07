@@ -3,7 +3,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.0"
 
 from appdaemon.plugins.hass.hassapi import Hass
 
@@ -23,12 +23,9 @@ class Notify_Mobiles(Hass):
             self.event_listen_str = translations[language]['MODE_CHANGE']
 
         self.recipients = self.args.get('recipients', [])
-        siri_message = self.args.get('siri_message', [])
-        for message in siri_message:
-            self.listen_event(self.ios_event, "ios.action_fired",
-                actionName = message['message'],
-                message = message
-            )
+        if 'siri_message' in self.args:
+            self.siri_messages = self.args.get('siri_message', [])
+            self.listen_event(self.ios_event, "ios.lightwand-mode-change")
 
         notify_state_change = self.args.get('notify_state_change', [])
         for state_change in notify_state_change:
@@ -77,14 +74,18 @@ class Notify_Mobiles(Hass):
     def ios_event(self, event_name, data, **kwargs) -> None:
         """ Listens for ios events configured with "siri message", sends notifications and changes mode """
 
-        message = kwargs['message']
-        if 'notify_receiver' in message:
-            self.send_notification(
-                message = message['notify_message'],
-                message_title = message['notify_title'],
-                message_recipient = message['notify_receiver']
-            )
-        self.fire_event(self.event_listen_str, mode = message['message'] )
+        message_from_ios = data.get("message")
+        self.log(f"Received iOS message: {message_from_ios}") ###
+        if message_from_ios is not None:
+            for message in self.siri_messages:
+                if message_from_ios == message['message']:
+                    if 'notify_receiver' in message:
+                        self.send_notification(
+                            message = message['notify_message'],
+                            message_title = message['notify_title'],
+                            message_recipient = message['notify_receiver']
+                        )
+            self.fire_event(self.event_listen_str, mode = message_from_ios )
 
     def stateChanged(self, entity, attribute, old, new, kwargs) -> None:
         """ Listens for state changes and sends notification """
