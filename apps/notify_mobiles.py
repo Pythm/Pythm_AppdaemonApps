@@ -1,98 +1,142 @@
-""" Notify mobiles and set mode with MODE_CHANGE from ios app
+# apps/ad/apps/notify_mobiles.py
+"""Notify mobiles and set mode with MODE_CHANGE from iOS app
 
-    @Pythm / https://github.com/Pythm
+@Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.0"
+
+import json
+from typing import Iterable, Union, Set
 
 from appdaemon.plugins.hass.hassapi import Hass
 
-class Notify_Mobiles(Hass):
 
-    def initialize(self):
-        self.event_listen_str:str = 'MODE_CHANGE'
+class Notify_Mobiles(Hass):
+    """AppDaemon component that forwards Home‑Assistant events to iOS devices."""
+
+    def initialize(self) -> None:
+        self.event_listen_str: str = 'MODE_CHANGE'
 
         language = self.args.get('lightwand_language', 'en')
-        language_file = self.args.get('language_file', '/conf/apps/Lightwand/translations.json')
+        language_file = self.args.get(
+            'language_file', '/conf/apps/Lightwand/translations.json'
+        )
         try:
             with open(language_file) as lang:
                 translations = json.load(lang)
         except FileNotFoundError:
-            self.log("Translation file not found", level = 'DEBUG')
+            self.log("Translation file not found", level='DEBUG')
         else:
-            self.event_listen_str = translations[language]['MODE_CHANGE']
+            self.event_listen_str = translations.get(language, {}).get(
+                'MODE_CHANGE', 'MODE_CHANGE'
+            )
 
         self.recipients = self.args.get('recipients', [])
-        siri_message = self.args.get('siri_message', [])
-        for message in siri_message:
-            self.listen_event(self.ios_event, "ios.action_fired",
-                actionName = message['message'],
-                message = message
-            )
+        if 'siri_message' in self.args:
+            self.siri_messages = self.args.get('siri_message', [])
+            self.listen_event(self.ios_event, "ios.lightwand-mode-change")
 
         notify_state_change = self.args.get('notify_state_change', [])
         for state_change in notify_state_change:
-            self.listen_state(self.stateChanged, state_change['sensor'],
-                message = state_change
+            self.listen_state(
+                self.stateChanged,
+                state_change['sensor'],
+                message=state_change,
             )
 
     def send_notification(self, **kwargs) -> None:
-        """ Sends notification to recipients via Home Assistant notification """
+        """Send a notification to a subset of configured mobile devices.
 
-        message:str = kwargs['message']
-        message_title:str = kwargs.get('message_title', 'Home Assistant')
-        message_recipient:str = kwargs.get('message_recipient', True)
-        also_if_not_home:bool = kwargs.get('also_if_not_home', False)
-        data:dict = kwargs.get('data', {'clickAction' : 'noAction'})
+        Parameters
+        ----------
+        message : str
+            The text that will appear in the notification. Mandatory.
+        message_title : str, optional
+            Title shown in the notification. Defaults to ``Home Assistant``.
+        message_recipient : Union[str, Iterable[str], bool], optional
+            * ``True``  – all recipients receive the message.
+            * ``"person_name"`` – only the recipient whose ``person`` key matches.
+            * ``["person1", "person2"]`` – a whitelist.
+            Defaults to ``True``.
+        also_if_not_home : bool, optional
+            If ``False`` (default) and a recipient has a ``tracker`` that is not
+            currently ``home`` the notification is skipped for that recipient.
+        data : dict, optional
+            Extra data passed to the notify service. ``clickAction`` is added
+            automatically if missing.
+        """
+        # 1️⃣  Pull arguments with sane defaults --------------------------------
+        message = kwargs.get('message')
+        if not message:
+            self.log("send_notification called without a message", level='WARNING')
+            return
 
+        message_title = kwargs.get('message_title', 'Home Assistant')
+        recipient_filter = kwargs.get('message_recipient', True)
+        also_if_not_home = kwargs.get('also_if_not_home', False)
+
+        # Normalise recipient filter → set of names (empty set ⇒ everyone)
+        if recipient_filter is True:
+            recipient_set: Set[str] = set()
+        else:
+            recipient_set = (
+                {recipient_filter}
+                if isinstance(recipient_filter, str)
+                else set(recipient_filter)
+            )
+
+        # Data defaults – make sure we don’t mutate the caller’s dict
+        data = kwargs.get('data', {}).copy()
+        data.setdefault('clickAction', 'noAction')
+
+        # 2️⃣  Loop over configured recipients ---------------------------------
+        notified = 0
         for r in self.recipients:
-            if (
-                r['person'] in message_recipient
-                or message_recipient == True
-            ):
-                if (
-                    'tracker' in r
-                    and not also_if_not_home
-                ):
-                    if self.get_state(r['tracker']) != 'home':
-                        continue
+            # 2a. Skip recipients that are not in the whitelist
+            if recipient_set and r.get('person') not in recipient_set:
+                continue
 
-                if not message == "clear_notification":
-                    if not 'clickAction' in data:
-                        data.update({'clickAction' : 'noAction'})
+            # 2b. Skip if tracker is not at home (unless forced)
+            if r.get('tracker') and not also_if_not_home:
+                if self.get_state(r['tracker']) != 'home':
+                    continue
 
-                    for re in r['receiver']:
-                        self.call_service(f'notify/{re}',
-                            title = message_title,
-                            message = message,
-                            data = data
-                        )
-                else:
-                    for re in r['receiver']:
-                        self.call_service(f'notify/{re}',
-                            message = message,
-                            data = data
-                        )
+            # 2c. Build the service kwargs (title only for normal messages)
+            service_kwargs = {
+                'message': message,
+                'data': data,
+            }
+            if message != 'clear_notification':
+                service_kwargs['title'] = message_title
+
+            # 2d. Send to every configured receiver for this recipient
+            for receiver in r.get('receiver', []):
+                self.call_service(f'notify/{receiver}', **service_kwargs)
+                notified += 1
 
     def ios_event(self, event_name, data, **kwargs) -> None:
-        """ Listens for ios events configured with "siri message", sends notifications and changes mode """
+        """Listen for iOS events configured with ``siri_message``."""
+        message_from_ios = data.get("message")
+        if message_from_ios is None:
+            return
 
-        message = kwargs['message']
-        if 'notify_receiver' in message:
-            self.send_notification(
-                message = message['notify_message'],
-                message_title = message['notify_title'],
-                message_recipient = message['notify_receiver']
-            )
-        self.fire_event(self.event_listen_str, mode = message['message'] )
+        for message in self.siri_messages:
+            if message_from_ios == message['message']:
+                if 'notify_receiver' in message:
+                    self.send_notification(
+                        message=message['notify_message'],
+                        message_title=message['notify_title'],
+                        message_recipient=message['notify_receiver'],
+                    )
+        self.fire_event(self.event_listen_str, mode=message_from_ios)
 
     def stateChanged(self, entity, attribute, old, new, kwargs) -> None:
-        """ Listens for state changes and sends notification """
-
+        """Listen for state changes and forward a notification."""
         message = kwargs['message']
         if 'notify_receiver' in message:
             self.send_notification(
-                message = f"{message['notify_message']} {self.get_state(entity)}",
-                message_title = message['notify_title'],
-                message_recipient = message['notify_receiver']
+                message=f"{message['notify_message']} {self.get_state(entity)}",
+                message_title=message['notify_title'],
+                message_recipient=message['notify_receiver'],
             )

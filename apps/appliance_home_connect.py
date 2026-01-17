@@ -4,7 +4,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from appdaemon import adbase as ad
 import datetime
@@ -85,6 +85,7 @@ class HomeConnect(ad.ADBase):
         self._findTimeForWashing(0)
 
     def _findTimeForWashing(self, kwargs) -> None:
+        now = self.ADapi.datetime(aware=True)
         data = {
                 'tag' : str(self.remote_start),
                 'actions' : [{ 'action' : self.turn_on_action_day, 'title' : 'Turn on dayprogram' },
@@ -98,7 +99,7 @@ class HomeConnect(ad.ADBase):
                 finishByHour = 16
             )
             if startWashingAt is not None:
-                if startWashingAt > self.ADapi.datetime(aware=True):
+                if startWashingAt > now:
                     self._resetHandler()
                     self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                         program = self.dayprogram['program']
@@ -123,7 +124,7 @@ class HomeConnect(ad.ADBase):
                 finishByHour = 8
             )
             if startWashingAt is not None:
-                if startWashingAt > self.ADapi.datetime(aware=True):
+                if startWashingAt > now:
                     self._resetHandler()
                     self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                         program = self.nightprogram['program']
@@ -166,7 +167,11 @@ class HomeConnect(ad.ADBase):
             self.handler = None
 
     def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
-        self.away_state = new == 'on'
+        if new == 'on':
+            self.away_state = True
+        else:
+            self.away_state = False
+            self._findTimeForWashing(0)
 
     def _notify_event(self, event_name, data, **kwargs) -> None:
         program = None

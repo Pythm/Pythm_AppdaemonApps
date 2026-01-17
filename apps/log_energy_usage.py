@@ -90,11 +90,12 @@ class LogEnergyUsage(ad.ADBase):
 
     def _create_runtimes(self, kwargs):
         lastStartTime = None
+        now = self.ADapi.datetime(aware=True)
         for item in self.electricalPrice.elpricestoday:
             lastStartTime = item.end
-            if lastStartTime >= self.ADapi.datetime(aware=True):
+            if lastStartTime >= now:
                 self.ADapi.run_at(self._daily_usage, lastStartTime, price = item.value)
-                if self.ADapi.datetime(aware=True).day != lastStartTime.day:
+                if now.day != lastStartTime.day:
                     break
         self.ADapi.run_at(self._register_daily_cost, lastStartTime + datetime.timedelta(seconds = 2))
         self.ADapi.run_at(self._create_runtimes, lastStartTime + datetime.timedelta(minutes = 3))
