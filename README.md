@@ -55,42 +55,90 @@ in the apps that relies on setting a vacation mode.
 Below are the available apps with configuration examples and requirements.  
 **Most sensors that are not critical to the app’s functionality are optional.** Values given below are defaults.  
 
+## 📌 App Index
+
+| App | Short Description |
+|-----|-------------------|
+| `appliance_home_connect` | Automates appliances based on electricity price, saving energy and money. |
+| `appliance_notify` | Notifies you when an appliance finishes, optionally silencing the unit automatically. |
+| `bathroomWindow` | Alerts when humidity drops while a bathroom window is open – a simple leak‑prevention tool. |
+| `change_dns_cloudflare` | Keeps your Cloudflare DNS record in sync with your public IP. |
+| `door_guard` | Warns when a door/window is left open beyond a set duration (e.g., fridge door). |
+| `doorbell` | Captures a snapshot, sends a notification, and streams to media players when the doorbell rings. |
+| `end_vacation` | Automatically turns off vacation mode when people return or a scheduled date arrives. |
+| `espresso_machine` | Sends a warning if your coffee machine is left on after a set time. |
+| `fire_alarm` | Integrates fire alarms, mode‑management, and device shutdown on danger detection. |
+| `garagedoor` | Opens/closes your garage door via iOS and auto‑opens on presence. |
+| `log_energy_usage` | Logs energy usage & calculates monthly cost, including guest‑usage adjustments. |
+| `media_pause` | Pauses media players when an associated sensor goes inactive (e.g., no one in room). |
+| `media_stop` | Stops media players when a sensor (e.g., doorbell) is triggered. |
+| **notify_mobiles** | A single app that routes all alerts to mobile devices, supports Siri‑shortcuts, and can be triggered by state changes.  
+Key features:  
+- **Recipients**: list of people with their Home Assistant trackers and notification receivers.  
+- **Siri messages**: custom Home Assistant events fired from iOS that send a pre‑configured message to chosen recipients.  
+- **State‑change alerts**: automatically notify when any sensor in `notify_state_change` toggles.  
+- **Mode change**: iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps. |
+| `rain_notify` | Notifies when rain or wind conditions meet your thresholds. |
+| `simultaneousOpened` | Warns when multiple sensors (door + window) are open at the same time. |
+| `wake_up` | Custom wake‑up alarm that can turn on lights, play a playlist, and more. |
+
 ---
 
-### 🧊 `appliance_home_connect`
+### 🧊 **Appliance Home Connect – Start appliances in Home Connect integration**
 
-**Function**: Starts appliances (e.g., dishwasher) when electricity prices are low.
-**Requirements**:
-  - [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)
-  - Notify app
-**Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.
-**Controls**: Home Connect appliances. Could work on other appliances where you "select.select_option" to start.
+**Purpose** – `appliance_home_connect` starts appliances via the Home Connect integration during the cheapest electricity periods. It supports separate day and night programs, remote start via a switch and vacation mode detection.
 
-**Description**
-The program must be able to finish by 16:00 to run the day program, if not it will find time and finish before 8 in the morning.
-Sends notification about scheduled time, with options to run program now.
-Active vacation switch prevents machine from running and starts the machine when vacation is turned off.
+| Feature | What it does | How you use it |
+|---------|--------------|----------------|
+| **Cheapest‑time scheduling** |	Finds the cheapest continuous period of electricity and starts the selected appliance program. |	Configure day and night programs with running_time and program values. |
+| **Vacation mode** | Prevents appliance runs while away. | Configure a vacation boolean entity. |
+| **Notifications** | Sends a push notification with a button to start the program now. | Use notify_mobiles app. |
 
-**Example configuration**
+**Safety Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.
+
+#### 📌 Configuration Overview
+
+Below is a fully‑annotated example showing every configuration option the app understands. Copy‑paste it into your `apps.yaml` and adjust to your setup.
 
 ```yaml
-dishwasher:
+
+appliance_home_connect:
   module: appliance_home_connect
   class: HomeConnect
   dependencies:
     - electricalPriceCalc
     - notify_mobiles
-  vacation: input_boolean.vacation
+  # ── 1️⃣ Recipients ────────────────────────────────────────
+  # These are passed to the notify app. Make sure the names match
+  # the recipients configured in notify_mobiles.
   notify_receiver:
     - Me
-  remote_start: binary_sensor.dishwasher_remote_start
+
+  # ── 2️⃣ Namespaces ───────────────────────────────────────
+  # Home Assistant namespace, defaults to 'default'
+  HASS_namespace: default
+
+  # ── 3️⃣ Vacation / Away detection ────────────────────────
+  vacation: input_boolean.vacation
+
+  # ── 4️⃣ Remote start switch ───────────────────────────────
+  # Switch or binary_sensor that, when turned on, triggers a start
+  remote_start: binary_sensor.zone_1_remote_start
+
+  # ── 5️⃣ Active program selector ───────────────────────────
+  # Entity that accepts `select_option` calls to start a program
+  active_program: select.dishwasher_program
+
+  # ── 6️⃣ Day program ───────────────────────────────────────
   day:
     program: dishcare_dishwasher_program_eco_50
-    running_time: 3 # In hours
+    running_time: 3  # Hours
   night:
     program: dishcare_dishwasher_program_night_wash
-    running_time: 4 # In hours
+    running_time: 4 # Hours
 ```
+
+The program must be able to finish by 16:00 to run the day program, if not it will find time and finish before 8 in the morning.
 
 ---
 
@@ -414,70 +462,95 @@ stop_AppleTv:
 
 ---
 
-### 📱 `notify_mobiles`
+### 📱 **Notify Mobiles – Central Notification Hub**
 
-**Function**: Central notification hub for all apps with more advanced functions.
+**Purpose** – `notify_mobiles` is the single place where all of Pythm’s AppDaemon apps push messages to devices.
+You configure the users devices here, and the person name as recipients in the other apps. -> One place to change devices when someone get's a new phone.
+It handles three core tasks:
 
-**Special Features**:  
+| Feature | What it does | How you use it |
+|---------|--------------|----------------|
+| **Central hub** | Forwards a message to any number of mobile/notification services (e.g. `mobile_app_*`, `gmail`, `telegram`, …). | Add a recipient block to `recipients`. |
+| **Siri messages** | Lets you trigger a Home Assistant *fire event* from an iOS Shortcut and have the app send a pre‑configured notification to selected users. | Create an iOS Shortcut → *Fire Event* → `event name = ios.lightwand-mode-change` → *Event data* contains `{"message":"food"}`. |
+| **State‑change alerts** | Sends a notification automatically whenever a sensor you care about changes value. | Add a `notify_state_change` entry with the sensor entity ID and a short message. |
 
-- **Siri Messages**: Send notifications to other family members when using Siri.(e.g., `siri_message: - message: food`) when also updating `MODE_CHANGE` used in Lightwand.
-- **Notify State Change**: Get instant notification when a state change on a sensor.
+---
 
-#### Configure Siri Messages:
+#### 📌 Configuration Overview
 
-In additon to trigger scripts to change lightmode you can setup Shortcut on iOS to send "Fire Event" and then also automatically send notifications.
-
-  1. Open the **Shortcuts** app on your iPhone.
-  2. Create a new shortcut or edit an existing one.
-  3. Tap **Add Action**.
-  4. Search for **Home Assistant**.
-  5. Select the action called **Fire Event**
-
-  6. **Configure the Action:**
-  * **Event Name:** Give this a specific name: `ios.lightwand-mode-change`. This applies to all your 'siri_message' instances.
-  * **Event Data:** This contains 'message' and your message name in JSON format. 
-
-  **Example for "Food":**
-  * **Event Name:** `ios.lightwand-mode-change`
-  * **Event Data:** `{"message": "food"}`
-
-  **Example for "Movie":**
-  * **Event Name:** `ios.lightwand-mode-change` (Keep the name the same!)
-  * **Event Data:** `{"message": "movie"}`
-
-**Example configuration**
+Below is a fully‑annotated example that shows every configuration option the app understands.  
+Feel free to copy‑paste it into your own `apps.yaml`, adjust and tweak the comments.
 
 ```yaml
 notify_mobiles:
   module: notify_mobiles
   class: Notify_Mobiles
-  recipients:
-    - person: Me
-      receiver: 
+
+  # ── 1️⃣ Recipients ───────────────────────────────────────
+  recipients:                   # List of people (or services) that can receive notifications
+    - person: Me               # “person” is an arbitrary label – used in the code to identify who gets the message
+      receiver:                # One or more notification services that belong to this person
         - mobile_app_my_phone
-      tracker: person.me
+      tracker: person.me        # Optional: a Person tracker entity – used to decide “when to send”
     - person: MyKids
       receiver:
         - mobile_app_my_first_kid
         - mobile_app_my_second_kid
     - person: Email
-      receiver: 
-        - gmail
-  siri_message: 
-    - message: food
-      notify_receiver:
-        - MyKids
-      notify_title: 'Food'
-      notify_message: 'Food is on the table!'
+      receiver:
+        - gmail                   # You can add any notification service that Home Assistant supports
 
-  notify_state_change:
+  # ── 2️⃣ Siri‑message blocks ───────────────────────────────────────
+  siri_message:                # List of custom events that can be fired from iOS Shortcuts
+    - message: food           # The value that will be passed in the event payload (`{"message":"food"}`)
+      notify_receiver:        # Who should see the notification
+        - MyKids
+      notify_title: 'Food'     # Title of the notification
+      notify_message: 'Food is on the table!'  # Body of the notification
+
+  # ── 3️⃣ State‑change alerts ───────────────────────────────────────
+  notify_state_change:         # One or more entries – the app will fire a notification whenever the sensor changes
     - sensor: sensor.myip
-      notify_title: 'New IP adresse'
-      notify_message: 'New IP adresse is'
+      notify_title: 'New IP address'
+      notify_message: 'New IP address is '
       notify_receiver:
         - Email
         - Me
 ```
+
+---
+
+#### 🔧 Setting Up Siri Shortcuts (iOS)
+
+If you want to use Siri to *trigger a mode change* (e.g. “Food” or “Movie”) and automatically send a notification:
+
+1. Open **Shortcuts** on your iPhone.  
+2. Create or edit a shortcut.  
+3. Add **Action** → *Home Assistant* → **Fire Event**.  
+4. **Configure the event**  
+   * **Event name** – `ios.lightwand-mode-change` (keep this the same for all shortcuts).  
+   * **Event data** – JSON that contains the message you want to send, e.g. `{"message":"food"}`.  
+
+> **Example** – *Food*  
+> ```json
+> {"message":"food"}
+> ```  
+> **Example** – *Movie*  
+> ```json
+> {"message":"movie"}
+> ```
+
+When the shortcut fires the event, `notify_mobiles` will catch it, look up the matching `siri_message` block, and push the configured notification to the chosen recipients.
+
+---
+
+#### 🎉 All Features Summarized
+
+| Function | How to enable |
+|----------|---------------|
+| **Central notification** | Define recipients in `recipients`. |
+| **Siri messages** | Add a `siri_message` list; set up iOS Shortcut as shown above. |
+| **State‑change alerts** | Add a `notify_state_change` list with sensor, title, message, and recipients. |
 
 ---
 

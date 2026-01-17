@@ -85,6 +85,7 @@ class HomeConnect(ad.ADBase):
         self._findTimeForWashing(0)
 
     def _findTimeForWashing(self, kwargs) -> None:
+        now = self.ADapi.datetime(aware=True)
         data = {
                 'tag' : str(self.remote_start),
                 'actions' : [{ 'action' : self.turn_on_action_day, 'title' : 'Turn on dayprogram' },
@@ -98,7 +99,7 @@ class HomeConnect(ad.ADBase):
                 finishByHour = 16
             )
             if startWashingAt is not None:
-                if startWashingAt > self.ADapi.datetime(aware=True):
+                if startWashingAt > now:
                     self._resetHandler()
                     self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                         program = self.dayprogram['program']
@@ -123,7 +124,7 @@ class HomeConnect(ad.ADBase):
                 finishByHour = 8
             )
             if startWashingAt is not None:
-                if startWashingAt > self.ADapi.datetime(aware=True):
+                if startWashingAt > now:
                     self._resetHandler()
                     self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                         program = self.nightprogram['program']
