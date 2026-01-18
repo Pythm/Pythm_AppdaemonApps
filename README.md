@@ -185,7 +185,7 @@ tumbledryer:
 
 ## 🛁 Bathroom Window
 
-**Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
+**📌 Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
 
 **🧩 Purpose** – `bathroomWindow` monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
 When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients. The notification can be silenced via a “Do not remind me” action.
@@ -419,42 +419,66 @@ rancilio:
   The notification will be sent **even if you are not home** as a safety precaution
 
 
----
-
-### 📱 Using the “Turn Off” Button
+**📱 Using the “Turn Off” Button**
 
 When the notification is shown at `last_chance`, you’ll see an action button labeled **Turn Off**.  
 When you tap it, the app receives the event `mobile_app_notification_action` and turns the switch off immediately.
 
+
 ---
 
-### 🔥 `fire_alarm`
+## 🔥 Fire Alarm
 
-**Requirements**: [ad-ModeManagement](https://github.com/Pythm/ad-ModeManagement)  
-**Function**: Integrates with fire alarms, mode management, and device control.  
+**🧩 Purpose** - App that reacts to fire‑alarm triggers:
 
-**Example configuration**
+**✨ Key Features**
+
+| Function | What it does |
+|----------|--------------|
+| **Mode change** | Fires a `MODE_CHANGE` event with the `fire` mode when the alarm turns **on**, and a `false_alarm` mode when it returns to **off**. |
+| **Safety actions** | Turns off any configured switches, media players, or other devices; opens any configured covers/screens if any person is home. |
+| **Notification** | Sends a “Smoke detected” notification through the configured *Notify Mobiles* app, even if no‑one is home. |
+
+**📌 Requirements**
+- Depends on the **[ad-ModeManagement](https://github.com/Pythm/ad-ModeManagement)** app for checking whether anyone is home.  
+
+**🔧 Example Configuration**
 
 ```yaml
 firealarm:
   module: fire_alarm
   class: FireAlarm
-  modeManagementApp: manageModes
+
+  modeManagementApp: manageModes        # AppDaemon name of the ModeManagement app
   dependencies:
     - manageModes
-  notify_receiver:
+  notify_receiver:                      # List of people (or services) to receive the notification
     - Me
-    - Email
-  alarms:
+
+  alarms:                               # List of fire‑alarm binary sensors to monitor
     - binary_sensor.zone_1_smoke
-  turn_off:
+
+  turn_off:                             # Optional devices/services to turn off when fire alarm is on
     - switch.dishwasher_power
-    - switch.kitch_espresso
     - fan.mi_air_purifier
-  screens:
+
+  screens:                              # Optional cover/screen entities to open if any person is home
     - cover.screen
     - cover.garage_door
 ```
+
+* **Alarm turns on**  
+  1. Triggers a `MODE_CHANGE` event (`mode: Fire`).  
+  2. Turns off all devices listed in `turn_off` that are currently `on`.  
+  3. If any person is home, opens every cover in `screens` that is not already open, like garage door etc.
+  4. Sends the “Smoke detected” notification to `notify_receiver` (always, even if no‑one is home).
+
+* **Alarm turns off**  
+  Fires a `MODE_CHANGE` event with `mode: false-alarm`.
+
+**📱 Additional Notes**
+- The app automatically adds all `media_player.*` entities not already in `turn_off` to the turn‑off list.  
+
 
 ---
 
@@ -483,7 +507,7 @@ garagecover:
 
 ### 📊 `log_energy_usage`
 
-**Requirements**: [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)  
+**📌 Requirements**: [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)  
 **Function**: Logs energy usage and calculates costs per month.  
 
 #### ✨ Key Features
@@ -650,7 +674,7 @@ When the shortcut fires the event, `notify_mobiles` will catch it, look up the m
 
 ### 🌧️ `rain_notify`
 
-**Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
+**📌 Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
 **Function**: Notifies when rain or wind conditions are met if a sensor is on.  
 
 **Example configuration**
