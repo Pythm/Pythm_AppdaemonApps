@@ -1,11 +1,11 @@
 """ Espresso machine
 
-Turns on/off a switch with an ios.action_fired and checks if it is turned off at 15:00
+Turns on switch based on datetime input and checks if it is turned off at 15:00
 
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from appdaemon.plugins.hass.hassapi import Hass
 import datetime
@@ -23,7 +23,8 @@ class EspressoMachine(Hass):
         self.handler = None
 
         self.espresso_machine = self.args['espresso_machine']
-        self.run_daily(self._check_coffee_machine_is_off, '15:00:00')
+        last_chance = self.args.get('last_chance', '15:00:00')
+        self.run_daily(self._check_coffee_machine_is_off, last_chance)
 
         if 'coffee_timer' in self.args:
             self.coffee_timer = self.args['coffee_timer']
@@ -36,12 +37,6 @@ class EspressoMachine(Hass):
                                               self.get_state(self.coffee_timer,
                                                              namespace = self.HASS_namespace))
 
-        if 'ios_toggle' in self.args:
-            self.ios_toggle = self.args['ios_toggle']
-            self.listen_event(self._ios_event, "ios.action_fired",
-                actionName = self.ios_toggle,
-                namespace = self.HASS_namespace
-            )
         self.turn_off_action:str = 'turn_off_' + str(self.espresso_machine)
         self.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
 
@@ -62,17 +57,6 @@ class EspressoMachine(Hass):
     def _turn_on_coffee_machine(self, kwargs) -> None:
         if self.get_state(self.espresso_machine, namespace = self.HASS_namespace) == 'off':
             self.call_service('switch/turn_on',
-                              entity_id = self.espresso_machine,
-                              namespace = self.HASS_namespace)
-
-    def _ios_event(self, event_name, data, **kwargs) -> None:
-        if self.get_state(self.espresso_machine, namespace = self.HASS_namespace) == 'off':
-            if self.now_is_between('06:00:00', '14:30:00'):
-                self.call_service('switch/turn_on',
-                                  entity_id = self.espresso_machine,
-                                  namespace = self.HASS_namespace)
-        elif self.get_state(self.espresso_machine) == 'on':
-            self.call_service('switch/turn_off',
                               entity_id = self.espresso_machine,
                               namespace = self.HASS_namespace)
 

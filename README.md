@@ -96,12 +96,12 @@ Auto-schedules appliances during *cheapest power hours* saving you money on elec
 
 ---
 
-### 🧊 **Appliance Home Connect – Start appliances in Home Connect integration**
+## 🧊 **Appliance Home Connect – Start appliances in Home Connect integration**
 
 **Purpose** – `appliance_home_connect` starts appliances via the Home Connect integration during the cheapest electricity periods. It supports separate day and night programs, remote start via a switch and vacation mode detection.
 
 
-#### ✨ Key Features
+##### ✨ Key Features
 
 | Feature | How it works |
 |---------|-------------|
@@ -112,7 +112,7 @@ Auto-schedules appliances during *cheapest power hours* saving you money on elec
 
 **Safety Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.
 
-#### 📌 Configuration Overview
+##### 🔧 Example Configuration
 
 Below is a fully-annotated example showing every configuration option the app understands. Copy-paste into your `apps.yaml` and adjust:
 
@@ -144,19 +144,19 @@ name-your-app:
     running_time: 4                                 # Hours (default: 4)
 ```
 
-#### 📝 Notes
+##### 📝 Notes
 - The app works if your washing machine is controlled via Home Connect integration or can be started via the select entity.
 - `running_time` must match the actual program duration.
 
 
 ---
 
-### ⚡ Appliance Notify – Central Notification for Appliances
+## ⚡ Appliance Notify – Central Notification for Appliances
 
 **Purpose** – `appliance_notify` watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
 It can automatically turn off the appliance and turn it back on after a minute.
 
-#### 📌 Configuration Overview
+##### 🔧 Example Configuration
 
 ```yaml
 tumbledryer:
@@ -174,7 +174,7 @@ tumbledryer:
 
 ```
 
-#### 📝 Notes
+##### 📝 Notes
 - Listens for the power sensor to go above 100 W, waits 30 s for it to drop below 15 W, then notifies.
 - If `dryer_switch` is provided, the notification contains a **Turn Off** button; clicking it turns the appliance off.
 -  If it finishes during the time window defined by turn_off_after and turn_off_before, the app automatically turns off the switch (if defined) to prevent beeping noises (e.g., from a tumble dryer).
@@ -183,14 +183,14 @@ tumbledryer:
 
 ---
 
-### 🛁 Bathroom Window
+## 🛁 Bathroom Window
 
 **Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
 
 **Purpose** – `bathroomWindow` monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
 When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients. The notification can be silenced via a “Do not remind me” action.
 
-#### 📌 Configuration Overview
+##### 🔧 Example Configuration
 
 ```yaml
 window_and_door:
@@ -219,9 +219,10 @@ window_and_door:
 
 ---
 
-### 🌐 **Change DNS Cloudflare** – Updates a Cloudflare `A`‑record with the current public IP.
+## 🌐 **Change DNS Cloudflare** – Updates a Cloudflare `A`‑record with the current public IP.
 
-**What the app does**
+
+##### ✨ Key Features
 
 - If a Home Assistant `ip_sensor` is supplied, it listens for state changes on that sensor and triggers an update when a new IP is reported.  
 - If no sensor is provided, it:
@@ -236,6 +237,8 @@ window_and_door:
 - **dns_record_id**: Use the **List DNS Records** API call to find it:  
   [https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records](https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records)  
 
+##### ⚙️ Configuration Options
+
 | Argument | Type | Description | Required |
 |----------|------|-------------|----------|
 | `cloudflare_api_token` | string | Cloudflare API token (Bearer). | **Yes** |
@@ -244,7 +247,8 @@ window_and_door:
 | `enable_proxy` | bool | Whether Cloudflare’s *proxy* should be enabled (`proxied: true`). Defaults to `true`. | No |
 | `ip_sensor` | string | Home Assistant sensor that holds the public IP.  If omitted the app polls `https://api.ipify.org` every hour. | No |
 
-#### 📌 Configuration Overview
+
+##### 🔧 Example Configuration
 
 ```yaml
 update_cloudflare_dns:
@@ -260,11 +264,24 @@ update_cloudflare_dns:
 
 ---
 
-### 🔐 Door Guard
+## 🔐 Door Guard
 
-The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
+**Purpose** – The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
 When the sensor finally closes, the notification is cleared automatically.  
 The app also lets you dismiss a reminder permanently with the **“Do not remind me”** action.
+
+##### ⚙️ Configuration Options
+
+| Key | Description | Required |
+|-----|-------------|----------|
+| `sensors` | List of sensor objects.  Each object must contain: | ✓ |
+| &nbsp;&nbsp;&nbsp;&nbsp;`sensor` | Home Assistant entity ID of the door/window sensor. | |
+| &nbsp;&nbsp;&nbsp;&nbsp;`duration` | Seconds the sensor must stay `on` before a notification is sent. | |
+| `notify_receiver` | List of recipients (labels from the **Notify Mobiles** recipients section). | ✓ |
+| `notify_title` | Notification title that appears on the device. | ✓ |
+| `notify_message` | Body of the notification. | ✓ |
+
+##### 🔧 Example Configuration
 
 ```yaml
 fridge:
@@ -281,23 +298,13 @@ fridge:
   notify_message: 'Your notification'
 ```
 
-#### Configuration keys
-
-| Key | Description | Required |
-|-----|-------------|----------|
-| `sensors` | List of sensor objects.  Each object must contain: | ✓ |
-| &nbsp;&nbsp;&nbsp;&nbsp;`sensor` | Home Assistant entity ID of the door/window sensor. | |
-| &nbsp;&nbsp;&nbsp;&nbsp;`duration` | Seconds the sensor must stay `on` before a notification is sent. | |
-| `notify_receiver` | List of recipients (labels from the **Notify Mobiles** recipients section). | ✓ |
-| `notify_title` | Notification title that appears on the device. | ✓ |
-| `notify_message` | Body of the notification. | ✓ |
-
-
 ---
 
-### 📡 Doorbell
+## 📡 Doorbell
 
-`doorbell.py` turns a Home Assistant **binary_sensor** into a notfication with camera snapshot:
+**Purpose** – `doorbell.py` turns a Home Assistant **binary_sensor** into a notfication with camera snapshot:
+
+##### ✨ Key Features
 
 | Feature | What it does |
 |---------|--------------|
@@ -306,7 +313,7 @@ fridge:
 | **Chime** | Daily volume switch: `daytime_volume` (06:00‑22:00) → `nighttime_volume`. |
 | **Notify** | Phone push via `notify_mobiles`.  Uses `notify_receiver`, `notify_message`, and `notify_when_away`. |
 
-#### 📌 Configuration Overview
+##### 🔧 Example Configuration
 
 ```yaml
 doorbell_alarm:
@@ -339,11 +346,19 @@ doorbell_alarm:
 
 ---
 
-### 🚪 `end_vacation`
+## ☀️ End Vacation
 
-**Function**: Automatically ends vacation mode on presence or datetime.  
+**Purpose** – Automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions in my other apps.
 
-**Example configuration**
+##### ⚙️ Configuration Options
+
+| Key | Type | Required? | Description |
+|-----|------|-----------|-------------|
+| `vacation_switch` | list of `input_boolean` entity IDs | **Yes** | Boolean switches that control vacation mode. |
+| `presence` | list of `person` entity IDs | No | Person trackers that trigger the vacation‑end logic when they return home. |
+| `vacation_ends` | `input_datetime` entity ID | No | Date/time entity used to schedule the vacation‑end if no presence is detected. |
+
+##### 🔧 Example Configuration
 
 ```yaml
 vacation_end:
@@ -357,31 +372,71 @@ vacation_end:
   vacation_ends: input_datetime.vacation_ending
 ```
 
+
 ---
 
-### ☕ `espresso_machine`
+## ☕ Coffee Machine  
 
-**Function**: Notifies if the coffee machine is still on at 15:00.
+**Purpose** – The **Espresso Machine** app monitors your coffee machine and automatically turns the switch on at a time you specify with an `input_datetime` (`coffee_timer`).  
+It will notify you if the machine is left on after a user‑defined “last chance” (default 15:00).  
 
-**iOS Toggle**:  
-- Add an iOS toggle to manually turn the machine on/off from your iPhone or iWatch.
-- Use an `input_datetime` to specify the time when the coffee machine should automatically turn on.  
-  Set the time to `00:00:00` to disable this automatic start.  
+##### ⚙️ Configuration Options
 
-**Example configuration**
+| Key              | Type                     | Required? | Description |
+|------------------|-----------|-----------|-------------|
+| `espresso_machine` | `switch` entity id      | **Yes**   | The switch that controls the coffee machine. |
+| `coffee_timer`   | `input_datetime` entity id | **Yes**   | The time at which the switch will be turned on each day.  
+                                   Set to `00:00:00` to disable the automatic start. |
+| `notify_receiver`| list of recipients       | **Yes**   | Who receives the notification. |
+| `notify_title`   | string                   | Optional  | Title of the notification. Defaults to **Coffee**. |
+| `notify_message` | string                   | Optional  | Body of the notification. Defaults to **Coffee machine is still on**. |
+| `last_chance`    | string time (`HH:MM:SS`) | Optional  | Time that the app will send a “Coffee machine is still on” notification each day.  
+
+
+##### 🔧 Example Configuration
 
 ```yaml
 rancilio:
   module: espresso_machine
   class: EspressoMachine
-  espresso_machine: switch.kitch_espresso
-  coffee_timer: input_datetime.espresso
-  ios_toggle: espresso
+  espresso_machine: switch.kitch_espresso   # Switch that powers the espresso machine
+  coffee_timer: input_datetime.espresso     # Time to auto‑turn on (00:00:00 disables)
   notify_receiver:
     - Me
   notify_title: 'Coffee'
   notify_message: 'Coffee machine is still on'
+  last_chance: '16:30:00'                   # Optional – overrides the default 15:00 notification
 ```
+
+- **Automatic turn‑on**  
+  The app calls the Home Assistant service `switch/turn_on` each day at the time defined by `input_datetime.espresso`.  
+
+- **Daily “last chance” notification**  
+  At the time specified by `last_chance`, the app checks whether the coffee machine is still on.  
+  If it is, it sends a notification that includes a “Turn Off” action button.  
+  Clicking that button will immediately turn the machine off.  
+  The notification will be sent **even if you are not home** as a safety precaution
+
+
+---
+
+### 📱 Using the “Turn Off” Button
+
+When the notification is shown at `last_chance`, you’ll see an action button labeled **Turn Off**.  
+When you tap it, the app receives the event `mobile_app_notification_action` and turns the switch off immediately.
+
+---
+
+## 📆 Behind the Scenes
+
+- **Daily timer** (`run_daily`) checks the machine state at `last_chance`.  
+- **State listener** on `coffee_timer` ensures the machine turns on each day unless the time is set to `00:00:00`.  
+- **Event listener** for `mobile_app_notification_action` handles the “Turn Off” action.
+
+With the `last_chance` option, you can adjust the time the notification is sent to suit your routine (e.g. 16:30 if you prefer to receive the reminder after breakfast).  
+
+---
+
 
 ---
 
