@@ -20,6 +20,18 @@ class EspressoMachine(Hass):
         self.notify_message = self.args.get('notify_message', 'Coffee machine is still on')
 
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
+
+        vacation = self.args.get('vacation', 'input_boolean.vacation')
+        if self.ADapi.entity_exists(vacation, namespace=self.HASS_namespace):
+            self.away_state = self.ADapi.get_state(vacation, namespace=self.HASS_namespace) == 'on'
+            self.ADapi.listen_state(
+                self._awayStateListen,
+                vacation,
+                namespace=self.HASS_namespace
+            )
+        else:
+            self.away_state = False
+
         self.handler = None
 
         self.espresso_machine = self.args['espresso_machine']
@@ -55,7 +67,7 @@ class EspressoMachine(Hass):
                                                          namespace = self.HASS_namespace))
 
     def _turn_on_coffee_machine(self, kwargs) -> None:
-        if self.get_state(self.espresso_machine, namespace = self.HASS_namespace) == 'off':
+        if self.get_state(self.espresso_machine, namespace = self.HASS_namespace) == 'off' and not self.away_state:
             self.call_service('switch/turn_on',
                               entity_id = self.espresso_machine,
                               namespace = self.HASS_namespace)
@@ -80,3 +92,9 @@ class EspressoMachine(Hass):
                 entity_id = self.espresso_machine,
                 namespace = self.HASS_namespace
             )
+
+    def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
+        if new == 'on':
+            self.away_state = True
+        else:
+            self.away_state = False

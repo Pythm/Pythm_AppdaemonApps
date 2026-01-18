@@ -58,7 +58,7 @@ in the apps that relies on setting a vacation mode.
 Below are the available apps with configuration examples and requirements.  
 **Most sensors that are not critical to the app’s functionality are optional.**
 
-#### Index of apps
+### Index
 
 🔔 **[Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)**
 
@@ -98,10 +98,10 @@ Auto-schedules appliances during *cheapest power hours* saving you money on elec
 
 ## 🧊 **Appliance Home Connect – Start appliances in Home Connect integration**
 
-**Purpose** – `appliance_home_connect` starts appliances via the Home Connect integration during the cheapest electricity periods. It supports separate day and night programs, remote start via a switch and vacation mode detection.
+**🧩 Purpose** – `appliance_home_connect` starts appliances via the Home Connect integration during the cheapest electricity periods. It supports separate day and night programs, remote start via a switch and vacation mode detection.
 
 
-##### ✨ Key Features
+**✨ Key Features**
 
 | Feature | How it works |
 |---------|-------------|
@@ -112,7 +112,7 @@ Auto-schedules appliances during *cheapest power hours* saving you money on elec
 
 **Safety Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 Below is a fully-annotated example showing every configuration option the app understands. Copy-paste into your `apps.yaml` and adjust:
 
@@ -144,7 +144,7 @@ name-your-app:
     running_time: 4                                 # Hours (default: 4)
 ```
 
-##### 📝 Notes
+**📝 Notes**
 - The app works if your washing machine is controlled via Home Connect integration or can be started via the select entity.
 - `running_time` must match the actual program duration.
 
@@ -153,10 +153,10 @@ name-your-app:
 
 ## ⚡ Appliance Notify – Central Notification for Appliances
 
-**Purpose** – `appliance_notify` watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
+**🧩 Purpose** – `appliance_notify` watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
 It can automatically turn off the appliance and turn it back on after a minute.
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 tumbledryer:
@@ -174,7 +174,7 @@ tumbledryer:
 
 ```
 
-##### 📝 Notes
+**📝 Notes**
 - Listens for the power sensor to go above 100 W, waits 30 s for it to drop below 15 W, then notifies.
 - If `dryer_switch` is provided, the notification contains a **Turn Off** button; clicking it turns the appliance off.
 -  If it finishes during the time window defined by turn_off_after and turn_off_before, the app automatically turns off the switch (if defined) to prevent beeping noises (e.g., from a tumble dryer).
@@ -187,10 +187,10 @@ tumbledryer:
 
 **Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
 
-**Purpose** – `bathroomWindow` monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
+**🧩 Purpose** – `bathroomWindow` monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
 When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients. The notification can be silenced via a “Do not remind me” action.
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 window_and_door:
@@ -222,7 +222,7 @@ window_and_door:
 ## 🌐 **Change DNS Cloudflare** – Updates a Cloudflare `A`‑record with the current public IP.
 
 
-##### ✨ Key Features
+**✨ Key Features**
 
 - If a Home Assistant `ip_sensor` is supplied, it listens for state changes on that sensor and triggers an update when a new IP is reported.  
 - If no sensor is provided, it:
@@ -237,7 +237,7 @@ window_and_door:
 - **dns_record_id**: Use the **List DNS Records** API call to find it:  
   [https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records](https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records)  
 
-##### ⚙️ Configuration Options
+**⚙️ Configuration Options**
 
 | Argument | Type | Description | Required |
 |----------|------|-------------|----------|
@@ -248,7 +248,7 @@ window_and_door:
 | `ip_sensor` | string | Home Assistant sensor that holds the public IP.  If omitted the app polls `https://api.ipify.org` every hour. | No |
 
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 update_cloudflare_dns:
@@ -266,11 +266,11 @@ update_cloudflare_dns:
 
 ## 🔐 Door Guard
 
-**Purpose** – The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
+**🧩 Purpose** – The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
 When the sensor finally closes, the notification is cleared automatically.  
 The app also lets you dismiss a reminder permanently with the **“Do not remind me”** action.
 
-##### ⚙️ Configuration Options
+**⚙️ Configuration Options**
 
 | Key | Description | Required |
 |-----|-------------|----------|
@@ -281,7 +281,7 @@ The app also lets you dismiss a reminder permanently with the **“Do not remind
 | `notify_title` | Notification title that appears on the device. | ✓ |
 | `notify_message` | Body of the notification. | ✓ |
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 fridge:
@@ -302,9 +302,9 @@ fridge:
 
 ## 📡 Doorbell
 
-**Purpose** – `doorbell.py` turns a Home Assistant **binary_sensor** into a notfication with camera snapshot:
+**🧩 Purpose** – `doorbell.py` turns a Home Assistant **binary_sensor** into a notfication with camera snapshot:
 
-##### ✨ Key Features
+**✨ Key Features**
 
 | Feature | What it does |
 |---------|--------------|
@@ -313,7 +313,7 @@ fridge:
 | **Chime** | Daily volume switch: `daytime_volume` (06:00‑22:00) → `nighttime_volume`. |
 | **Notify** | Phone push via `notify_mobiles`.  Uses `notify_receiver`, `notify_message`, and `notify_when_away`. |
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 doorbell_alarm:
@@ -348,9 +348,9 @@ doorbell_alarm:
 
 ## ☀️ End Vacation
 
-**Purpose** – Automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions in my other apps.
+**🧩 Purpose** – Automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions in my other apps.
 
-##### ⚙️ Configuration Options
+**⚙️ Configuration Options**
 
 | Key | Type | Required? | Description |
 |-----|------|-----------|-------------|
@@ -358,7 +358,7 @@ doorbell_alarm:
 | `presence` | list of `person` entity IDs | No | Person trackers that trigger the vacation‑end logic when they return home. |
 | `vacation_ends` | `input_datetime` entity ID | No | Date/time entity used to schedule the vacation‑end if no presence is detected. |
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 vacation_end:
@@ -377,10 +377,10 @@ vacation_end:
 
 ## ☕ Coffee Machine  
 
-**Purpose** – The **Espresso Machine** app monitors your coffee machine and automatically turns the switch on at a time you specify with an `input_datetime` (`coffee_timer`).  
+**🧩 Purpose** – The **Espresso Machine** app monitors your coffee machine and automatically turns the switch on at a time you specify with an `input_datetime` (`coffee_timer`).  
 It will notify you if the machine is left on after a user‑defined “last chance” (default 15:00).  
 
-##### ⚙️ Configuration Options
+**⚙️ Configuration Options**
 
 | Key              | Type                     | Required? | Description |
 |------------------|-----------|-----------|-------------|
@@ -393,7 +393,7 @@ It will notify you if the machine is left on after a user‑defined “last chan
 | `last_chance`    | string time (`HH:MM:SS`) | Optional  | Time that the app will send a “Coffee machine is still on” notification each day.  
 
 
-##### 🔧 Example Configuration
+**🔧 Example Configuration**
 
 ```yaml
 rancilio:
@@ -401,6 +401,7 @@ rancilio:
   class: EspressoMachine
   espresso_machine: switch.kitch_espresso   # Switch that powers the espresso machine
   coffee_timer: input_datetime.espresso     # Time to auto‑turn on (00:00:00 disables)
+  vacation: input_boolean.vacation          # Optional: Disables auto-turn on when on vacation
   notify_receiver:
     - Me
   notify_title: 'Coffee'
@@ -424,19 +425,6 @@ rancilio:
 
 When the notification is shown at `last_chance`, you’ll see an action button labeled **Turn Off**.  
 When you tap it, the app receives the event `mobile_app_notification_action` and turns the switch off immediately.
-
----
-
-## 📆 Behind the Scenes
-
-- **Daily timer** (`run_daily`) checks the machine state at `last_chance`.  
-- **State listener** on `coffee_timer` ensures the machine turns on each day unless the time is set to `00:00:00`.  
-- **Event listener** for `mobile_app_notification_action` handles the “Turn Off” action.
-
-With the `last_chance` option, you can adjust the time the notification is sent to suit your routine (e.g. 16:30 if you prefer to receive the reminder after breakfast).  
-
----
-
 
 ---
 
@@ -570,7 +558,7 @@ stop_AppleTv:
 
 ### 📱 **Notify Mobiles – Central Notification Hub**
 
-**Purpose** – `notify_mobiles` is the single place where all of Pythm’s AppDaemon apps push messages to devices.
+**🧩 Purpose** – `notify_mobiles` is the single place where all of Pythm’s AppDaemon apps push messages to devices.
 You configure the users devices here, and the person name as recipients in the other apps. -> One place to change devices when someone get's a new phone.
 It handles three core tasks:
 
@@ -708,7 +696,7 @@ window_and_door:
 
 ---
 
-### 🕒 `wake_up`
+### 🚨 `wake_up`
 
 **Function**: Custom wake‑up alarm with lights, media, and conditions.  
 
