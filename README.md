@@ -55,7 +55,14 @@ in the apps that relies on setting a vacation mode.
 Below are the available apps with configuration examples and requirements.  
 **Most sensors that are not critical to the app’s functionality are optional.** Values given below are defaults.  
 
-## 📌 App Index
+#### [Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)
+A single app that routes all alerts to mobile devices, supports Siri‑shortcuts, and can be triggered by state changes.  
+Key features:  
+- **Recipients**: list of people with their Home Assistant trackers and notification receivers.  
+- **Siri messages**: custom Home Assistant events fired from iOS that send a pre‑configured message to chosen recipients.  
+- **State‑change alerts**: automatically notify when any sensor in `notify_state_change` toggles.  
+- **Mode change**: iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps. |
+
 
 | App | Short Description |
 |-----|-------------------|
@@ -72,15 +79,10 @@ Below are the available apps with configuration examples and requirements.
 | `log_energy_usage` | Logs energy usage & calculates monthly cost, including guest‑usage adjustments. |
 | `media_pause` | Pauses media players when an associated sensor goes inactive (e.g., no one in room). |
 | `media_stop` | Stops media players when a sensor (e.g., doorbell) is triggered. |
-| **notify_mobiles** | A single app that routes all alerts to mobile devices, supports Siri‑shortcuts, and can be triggered by state changes.  
-Key features:  
-- **Recipients**: list of people with their Home Assistant trackers and notification receivers.  
-- **Siri messages**: custom Home Assistant events fired from iOS that send a pre‑configured message to chosen recipients.  
-- **State‑change alerts**: automatically notify when any sensor in `notify_state_change` toggles.  
-- **Mode change**: iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps. |
 | `rain_notify` | Notifies when rain or wind conditions meet your thresholds. |
 | `simultaneousOpened` | Warns when multiple sensors (door + window) are open at the same time. |
 | `wake_up` | Custom wake‑up alarm that can turn on lights, play a playlist, and more. |
+
 
 ---
 
