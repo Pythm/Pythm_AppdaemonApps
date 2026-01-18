@@ -53,7 +53,9 @@ in the apps that relies on setting a vacation mode.
 
 ## 📦 App List  
 Below are the available apps with configuration examples and requirements.  
-**Most sensors that are not critical to the app’s functionality are optional.** Values given below are defaults.  
+**Most sensors that are not critical to the app’s functionality are optional.**
+
+#### Index of apps
 
 🔔 **[Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)**
 
@@ -67,8 +69,7 @@ Key features:
 
 🧊 **[Appliance Home Connect](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-home-connect--start-appliances-in-home-connect-integration)**
 
-> ✨ **Appliance Home Connect** auto-schedules appliances during *cheapest power hours* saving you money on electricity.
-> 🧭 Separate day and night programs.
+Auto-schedules appliances during *cheapest power hours* saving you money on electricity. Separate day and night programs.
 
 
 | App | Short Description |
@@ -97,7 +98,7 @@ Key features:
 **Purpose** – `appliance_home_connect` starts appliances via the Home Connect integration during the cheapest electricity periods. It supports separate day and night programs, remote start via a switch and vacation mode detection.
 
 
-#### 🔧 Key Features
+#### ✨ Key Features
 
 | Feature | How it works |
 |---------|-------------|
@@ -397,7 +398,7 @@ garagecover:
 **Requirements**: [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc)  
 **Function**: Logs energy usage and calculates costs per month.  
 
-**Special Features**:  
+#### ✨ Key Features
 
 - The **"Total"** item calculates the **average price** and **total cost** for the month.  
 - Input texts and **guest** usage can be configured:  
@@ -550,7 +551,7 @@ When the shortcut fires the event, `notify_mobiles` will catch it, look up the m
 
 ---
 
-#### 🎉 All Features Summarized
+#### ✨ Key Features Summarized
 
 | Function | How to enable |
 |----------|---------------|
