@@ -16,7 +16,7 @@ To avoid warnings for unused apps, set `missing_app_warnings: 0` in your `appdae
 ## 📌 Common Configuration
 
 ### 🔔 Notifications  
-All apps use the `notify_mobiles` app by default (named `notify_mobiles`). If you rename this app, configure other apps with the `notify_app` parameter and the new name. You can also configure my public apps with `notify_app: notify_mobiles` to get additional notification functionality.
+All apps uses the `notify_mobiles` app by default (named `notify_mobiles`). If you rename this app, configure other apps with the `notify_app` parameter and the new name. You can also configure my public apps with `notify_app: notify_mobiles` to get additional notification functionality.
 
 My public apps with notification:
 - [ad-ClimateCommander](https://github.com/Pythm/ad-ClimateCommander)
@@ -27,7 +27,7 @@ My public apps with notification:
 > [!TIP]  
 > Long press notification for options
 
-### 🧭 Namespace Configuration  
+### 🔧 Namespace Configuration  
 AppDaemon supports custom namespaces for Home Assistant and MQTT. If not configured, defaults are:
 
 - **Home Assistant**: `default`  
@@ -55,7 +55,8 @@ in the apps that relies on setting a vacation mode.
 Below are the available apps with configuration examples and requirements.  
 **Most sensors that are not critical to the app’s functionality are optional.** Values given below are defaults.  
 
-#### [Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)
+🔔 **[Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)**
+
 A single app that routes all alerts to mobile devices, supports Siri‑shortcuts, and can be triggered by state changes.  
 Key features:  
 - **Recipients**: list of people with their Home Assistant trackers and notification receivers.  
@@ -64,9 +65,14 @@ Key features:
 - **Mode change**: iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps. |
 
 
+🧊 **[Appliance Home Connect](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-home-connect--start-appliances-in-home-connect-integration)**
+
+> ✨ **Appliance Home Connect** auto-schedules appliances during *cheapest power hours* saving you money on electricity.
+> 🧭 Separate day and night programs.
+
+
 | App | Short Description |
 |-----|-------------------|
-| `appliance_home_connect` | Automates appliances based on electricity price, saving energy and money. |
 | `appliance_notify` | Notifies you when an appliance finishes, optionally silencing the unit automatically. |
 | `bathroomWindow` | Alerts when humidity drops while a bathroom window is open – a simple leak‑prevention tool. |
 | `change_dns_cloudflare` | Keeps your Cloudflare DNS record in sync with your public IP. |
@@ -90,61 +96,59 @@ Key features:
 
 **Purpose** – `appliance_home_connect` starts appliances via the Home Connect integration during the cheapest electricity periods. It supports separate day and night programs, remote start via a switch and vacation mode detection.
 
-| Feature | What it does | How you use it |
-|---------|--------------|----------------|
-| **Cheapest‑time scheduling** |	Finds the cheapest continuous period of electricity and starts the selected appliance program. |	Configure day and night programs with running_time and program values. |
-| **Vacation mode** | Prevents appliance runs while away. | Configure a vacation boolean entity. |
-| **Notifications** | Sends a push notification with a button to start the program now. | Use notify_mobiles app. |
+
+#### 🔧 Key Features
+
+| Feature | How it works |
+|---------|-------------|
+| **Smart scheduling** | Automatically picks cheapest time slots for washing |
+| **Day/Night programs** | Different programs for daytime (7 AM-4 PM) and nighttime |
+| **Manual override** | Notification buttons let you force-start a program |
+| **Away mode** | Pauses scheduling when you're on vacation |
 
 **Safety Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.
 
-#### 📌 Configuration Overview
+### 📌 Configuration Overview
 
-Below is a fully‑annotated example showing every configuration option the app understands. Copy‑paste it into your `apps.yaml` and adjust to your setup.
+Below is a fully-annotated example showing every configuration option the app understands. Copy-paste into your `apps.yaml` and adjust:
 
 ```yaml
-
-appliance_home_connect:
+name-your-app:
   module: appliance_home_connect
   class: HomeConnect
   dependencies:
     - electricalPriceCalc
     - notify_mobiles
-  # ── 1️⃣ Recipients ────────────────────────────────────────
-  # These are passed to the notify app. Make sure the names match
-  # the recipients configured in notify_mobiles.
-  notify_receiver:
+
+  # 1️⃣ Notification settings
+  notify_app: notify_mobiles          # Name of your notification app (default: notify_mobiles)
+  notify_receiver:                    # Who gets notified (must match person labels in notify_mobiles)
     - Me
+    - MyWife
 
-  # ── 2️⃣ Namespaces ───────────────────────────────────────
-  # Home Assistant namespace, defaults to 'default'
-  HASS_namespace: default
+  # 2️⃣ Vacation/away state
+  vacation: input_boolean.vacation    # Optional: pauses scheduling when away
 
-  # ── 3️⃣ Vacation / Away detection ────────────────────────
-  vacation: input_boolean.vacation
+  # 3️⃣ Appliance control
+  remote_start: binary_sensor.remote_start_machine  # Switch to trigger washing
+  active_program: select.dishwasher_program  # Select entity for program choice
 
-  # ── 4️⃣ Remote start switch ───────────────────────────────
-  # Switch or binary_sensor that, when turned on, triggers a start
-  remote_start: binary_sensor.zone_1_remote_start
-
-  # ── 5️⃣ Active program selector ───────────────────────────
-  # Entity that accepts `select_option` calls to start a program
-  active_program: select.dishwasher_program
-
-  # ── 6️⃣ Day program ───────────────────────────────────────
-  day:
-    program: dishcare_dishwasher_program_eco_50
-    running_time: 3  # Hours
-  night:
-    program: dishcare_dishwasher_program_night_wash
-    running_time: 4 # Hours
+  # 4️⃣ Program definitions
+  day:                                              # Daytime program (runs 07:00-16:00)
+    program: dishcare_dishwasher_program_eco_50     # Program name in Home Connect
+    running_time: 3                                 # Hours (default: 3)
+  night:                                            # Nighttime program (runs 16:00-07:00)
+    program: dishcare_dishwasher_program_night_wash # Program name in Home Connect
+    running_time: 4                                 # Hours (default: 4)
 ```
 
-The program must be able to finish by 16:00 to run the day program, if not it will find time and finish before 8 in the morning.
+### 📝 Notes
+- The app works if your washing machine is controlled via Home Connect integration or can be started via the select entity.
+- `running_time` must match the actual program duration.
 
 ---
 
-### 🧺 `appliance_notify`
+### ⚡ `appliance_notify`
 
 **Function**: Notifies when an appliance finishes (based on power sensor). If it finishes during the time window defined by turn_off_after and turn_off_before, the app automatically turns off the switch (if defined) to prevent beeping noises (e.g., from a tumble dryer).
 Option from notifcation to turn off the switch.
@@ -489,23 +493,23 @@ notify_mobiles:
   class: Notify_Mobiles
 
   # ── 1️⃣ Recipients ───────────────────────────────────────
-  recipients:                   # List of people (or services) that can receive notifications
+  recipients:                  # List of people (or services) that can receive notifications
     - person: Me               # “person” is an arbitrary label – used in the code to identify who gets the message
       receiver:                # One or more notification services that belong to this person
         - mobile_app_my_phone
-      tracker: person.me        # Optional: a Person tracker entity – used to decide “when to send”
+      tracker: person.me       # Optional: a Person tracker entity – used to decide “when to send”
     - person: MyKids
       receiver:
         - mobile_app_my_first_kid
         - mobile_app_my_second_kid
     - person: Email
       receiver:
-        - gmail                   # You can add any notification service that Home Assistant supports
+        - gmail                # You can add any notification service that Home Assistant supports
 
   # ── 2️⃣ Siri‑message blocks ───────────────────────────────────────
   siri_message:                # List of custom events that can be fired from iOS Shortcuts
-    - message: food           # The value that will be passed in the event payload (`{"message":"food"}`)
-      notify_receiver:        # Who should see the notification
+    - message: food            # The value that will be passed in the event payload (`{"message":"food"}`)
+      notify_receiver:         # Who should see the notification
         - MyKids
       notify_title: 'Food'     # Title of the notification
       notify_message: 'Food is on the table!'  # Body of the notification
