@@ -6,7 +6,7 @@ Turns off switches and opens screens/garagedoors
 
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from appdaemon.plugins.hass.hassapi import Hass
 import json
@@ -20,7 +20,6 @@ class FireAlarm(Hass):
 
     def initialize(self):
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
-        self.event_listen_str:str = 'MODE_CHANGE'
 
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.get_app(name_of_notify_app)
@@ -51,7 +50,7 @@ class FireAlarm(Hass):
 
     def _alarmactivated(self, entity, attribute, old, new, kwargs) -> None:
         if new == 'on':
-            self.fire_event(self.event_listen_str, mode = translations.fire)
+            self.fire_event(translations.MODE_CHANGE, mode = translations.fire)
             for item in self.turn_off_items:
                 try:
                     if self.get_state(item) == 'on':
@@ -86,7 +85,7 @@ class FireAlarm(Hass):
             new == 'off'
             and old == 'on'
         ):
-            self.fire_event(self.event_listen_str, mode = translations.false_alarm)
+            self.fire_event(translations.MODE_CHANGE, mode = translations.false_alarm)
         elif (
             new not in UNAVAIL and
             old not in UNAVAIL

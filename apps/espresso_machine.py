@@ -22,9 +22,9 @@ class EspressoMachine(Hass):
         self.HASS_namespace = self.args.get('HASS_namespace', 'default')
 
         vacation = self.args.get('vacation', 'input_boolean.vacation')
-        if self.ADapi.entity_exists(vacation, namespace=self.HASS_namespace):
-            self.away_state = self.ADapi.get_state(vacation, namespace=self.HASS_namespace) == 'on'
-            self.ADapi.listen_state(
+        if self.entity_exists(vacation, namespace=self.HASS_namespace):
+            self.away_state = self.get_state(vacation, namespace=self.HASS_namespace) == 'on'
+            self.listen_state(
                 self._awayStateListen,
                 vacation,
                 namespace=self.HASS_namespace
