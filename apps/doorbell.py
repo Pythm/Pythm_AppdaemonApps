@@ -8,15 +8,21 @@ __version__ = "0.1.1"
 
 from appdaemon import adbase as ad
 from datetime import datetime
-from utils_apps import save_image_with_timestamp
+from utils_apps import save_image_with_timestamp, local_path_from_target
 
 class Doorbell(ad.ADBase):
 
     def initialize(self):
         self.ADapi = self.get_ad_api()
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
-        self.target_directory = self.args.get('target_directory', 'www/snapshots/') # '/root/.homeassistant/www/snapshots/'
-        self.local_directory = self.args.get('local_directory', '/local/snapshots/')
+        self.target_directory = self.args.get('target_directory', 'www/snapshots/')
+        try:
+            self.local_directory = local_path_from_target(
+                self.target_directory
+            )
+        except ValueError as exc:
+            self.ADapi.log(f"{exc}", level="ERROR")
+            raise Exception
 
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)

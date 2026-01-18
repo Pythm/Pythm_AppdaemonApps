@@ -23,6 +23,9 @@ My public apps with notification:
 - [ad-ElectricalManagement](https://github.com/Pythm/ad-ElectricalManagement)
 - [ad-ModeManagement](https://github.com/Pythm/ad-ModeManagement)
 
+```yaml
+  notify_app: notify_mobiles          # Name of your notification app
+```
 
 > [!TIP]  
 > Long press notification for options
@@ -109,7 +112,7 @@ Auto-schedules appliances during *cheapest power hours* saving you money on elec
 
 **Safety Note**: Electrical appliances like washing machines should only be used when awake. Use at your own risk.
 
-### 📌 Configuration Overview
+#### 📌 Configuration Overview
 
 Below is a fully-annotated example showing every configuration option the app understands. Copy-paste into your `apps.yaml` and adjust:
 
@@ -119,20 +122,18 @@ name-your-app:
   class: HomeConnect
   dependencies:
     - electricalPriceCalc
-    - notify_mobiles
 
   # 1️⃣ Notification settings
-  notify_app: notify_mobiles          # Name of your notification app (default: notify_mobiles)
   notify_receiver:                    # Who gets notified (must match person labels in notify_mobiles)
     - Me
     - MyWife
 
   # 2️⃣ Vacation/away state
-  vacation: input_boolean.vacation    # Optional: pauses scheduling when away
+  vacation: input_boolean.vacation    # Optional: pauses scheduling when on vacation
 
   # 3️⃣ Appliance control
-  remote_start: binary_sensor.remote_start_machine  # Switch to trigger washing
-  active_program: select.dishwasher_program  # Select entity for program choice
+  remote_start: binary_sensor.remote_start_machine  # Switch that enables remote start
+  active_program: select.dishwasher_program         # Select entity for program choice
 
   # 4️⃣ Program definitions
   day:                                              # Daytime program (runs 07:00-16:00)
@@ -143,70 +144,90 @@ name-your-app:
     running_time: 4                                 # Hours (default: 4)
 ```
 
-### 📝 Notes
+#### 📝 Notes
 - The app works if your washing machine is controlled via Home Connect integration or can be started via the select entity.
 - `running_time` must match the actual program duration.
 
+
 ---
 
-### ⚡ `appliance_notify`
+### ⚡ Appliance Notify – Central Notification for Appliances
 
-**Function**: Notifies when an appliance finishes (based on power sensor). If it finishes during the time window defined by turn_off_after and turn_off_before, the app automatically turns off the switch (if defined) to prevent beeping noises (e.g., from a tumble dryer).
-Option from notifcation to turn off the switch.
-After 60 seconds the switch is turned back on. Leaving the machine ready without any manual interference.
+**Purpose** – `appliance_notify` watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
+It can automatically turn off the appliance and turn it back on after a minute.
 
-**Example configuration**
+#### 📌 Configuration Overview
 
 ```yaml
 tumbledryer:
   module: appliance_notify
   class: Dryer
-  dependencies:
-    - notify_mobiles
+  dryer_switch: switch.tumble_dryer      # Switch that controls the appliance
+  dryer_power: sensor.tumble_dryer_power # Sensor that reports power usage
   notify_receiver:
     - Me
-    - Mykid
-  notify_title: 'Tumbledryer'
-  notify_message: 'Tumbledryer is finished'
-  dryer_switch: switch.tumbledryer 
-  turn_off_after: '22:00:00'
+    - Email
+  notify_title: 'Tumble Dryer'
+  notify_message: 'Your dryer has finished its cycle.'
+  turn_off_after: '22:00:00'            # Turn the appliance off only between these times
   turn_off_before: '07:00:00'
-  dryer_power: sensor.tumbledryer_power
+
 ```
+
+#### 📝 Notes
+- Listens for the power sensor to go above 100 W, waits 30 s for it to drop below 15 W, then notifies.
+- If `dryer_switch` is provided, the notification contains a **Turn Off** button; clicking it turns the appliance off.
+-  If it finishes during the time window defined by turn_off_after and turn_off_before, the app automatically turns off the switch (if defined) to prevent beeping noises (e.g., from a tumble dryer).
+- If turned off by notification or time the switch is turned back on automatically after 60 seconds leaving the machine ready to be used again without any manual interference.
+
 
 ---
 
-### 🚪 `bathroomWindow`  
+### 🛁 Bathroom Window
 
-**Function**: Notifies when bathroom humidity drops and window is open.  
 **Requirements**: [ad-Weather](https://github.com/Pythm/ad-Weather)  
 
-**Example configuration**
+**Purpose** – `bathroomWindow` monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
+When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients. The notification can be silenced via a “Do not remind me” action.
+
+#### 📌 Configuration Overview
 
 ```yaml
-window_bath:
+window_and_door:
   module: bathroomWindow
   class: BathroomWindow
-  dependencies:
-    - notify_mobiles
-  sensors:
-    - sensor: binary_sensor.bad_vindu_contact
-      duration: 1200
-  humidity: sensor.bad_multisensor_humidity
-  offset: 5
-  check_below_temp: 20
+
+  sensors:                     # List of door/window sensors to monitor
+    - sensor: binary_sensor.door_contact
+      duration: 1200           # Seconds the sensor must stay “on” before checking humidity
+    - sensor: binary_sensor.window_contact
+      duration: 600
+
+  humidity: sensor.humidity   # Optional humidity sensor
+  offset: 5                   # Acceptable humidity difference from average
+
+  check_below_temp: 20        # Only notify when outside temperature is below this value
+
   notify_receiver:
     - Me
-    - Mywife
   notify_title: 'Bathroom Window Open'
   notify_message: 'Humidity is down to normal'
 ```
 
+* `notify_receiver` is mandatory (used by `notify_mobiles`), while `notify_title` and `notify_message` default to “Bathroom Window Open” and “Humidity is down to normal” if omitted.*
+
+
 ---
 
-### 🌐 `change_dns_cloudflare`
+### 🌐 **Change DNS Cloudflare** – Updates a Cloudflare `A`‑record with the current public IP.
 
-**Function**: Updates Cloudflare DNS with your public IP.  
+**What the app does**
+
+- If a Home Assistant `ip_sensor` is supplied, it listens for state changes on that sensor and triggers an update when a new IP is reported.  
+- If no sensor is provided, it:
+   * fetches the public IP once during startup (`_get_public_ip`)  
+   * checks the public IP every hour at 00:10 (`_checkPublicIPAddress`).  
+- Whenever the public IP differs from the record IP, the app sends a `PUT` request to Cloudflare to update the record.  
 
 **Setup Instructions**:  
 
@@ -215,77 +236,106 @@ window_bath:
 - **dns_record_id**: Use the **List DNS Records** API call to find it:  
   [https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records](https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records)  
 
-Will listen to changes in Home Assistant DNS IP integration if `ip_sensor` is configured. If not it will check against `api.ipify.org` every hour, and on initialise.  
+| Argument | Type | Description | Required |
+|----------|------|-------------|----------|
+| `cloudflare_api_token` | string | Cloudflare API token (Bearer). | **Yes** |
+| `zone_id` | string | ID of the zone that contains the record. | **Yes** |
+| `dns_record_id` | string | ID of the Cloudflare DNS record to update. | **Yes** |
+| `enable_proxy` | bool | Whether Cloudflare’s *proxy* should be enabled (`proxied: true`). Defaults to `true`. | No |
+| `ip_sensor` | string | Home Assistant sensor that holds the public IP.  If omitted the app polls `https://api.ipify.org` every hour. | No |
 
-**Example configuration**
+#### 📌 Configuration Overview
 
 ```yaml
 update_cloudflare_dns:
   module: change_dns_cloudflare
   class: Change_DNS
-  cloudflare_api_token: !secret cloudflare_api_token
-  zone_id: !secret yourCloudflareZoneID
-  dns_record_id: yourCloudflareZoneID
-  enable_proxy: True
+  cloudflare_api_token: <your-token>
+  zone_id: <your-zone-id>
+  dns_record_id: <your-record-id>
+  enable_proxy: true          # optional – defaults to true
+  # ip_sensor: sensor.my_public_ip  # optional; omit to use ipify polling
 ```
+
 
 ---
 
-### 🔐 `door_guard`
+### 🔐 Door Guard
 
-**Function**: Notifies if a door/window is left open for a specified duration. Useful for fridges.  
-
-**Example configuration**
+The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
+When the sensor finally closes, the notification is cleared automatically.  
+The app also lets you dismiss a reminder permanently with the **“Do not remind me”** action.
 
 ```yaml
 fridge:
   module: door_guard
   class: DoorGuard
-  dependencies:
-    - notify_mobiles
+
   sensors:
     - sensor: binary_sensor.window_door_is_open
-      duration: 300
+      duration: 300          # seconds to wait before the notification is sent
   notify_receiver:
     - Me
-    - Mywife
-    - Mykid
+    - MyKids
   notify_title: 'Name Your Door/Window'
   notify_message: 'Your notification'
 ```
 
+#### Configuration keys
+
+| Key | Description | Required |
+|-----|-------------|----------|
+| `sensors` | List of sensor objects.  Each object must contain: | ✓ |
+| &nbsp;&nbsp;&nbsp;&nbsp;`sensor` | Home Assistant entity ID of the door/window sensor. | |
+| &nbsp;&nbsp;&nbsp;&nbsp;`duration` | Seconds the sensor must stay `on` before a notification is sent. | |
+| `notify_receiver` | List of recipients (labels from the **Notify Mobiles** recipients section). | ✓ |
+| `notify_title` | Notification title that appears on the device. | ✓ |
+| `notify_message` | Body of the notification. | ✓ |
+
+
 ---
 
-### 🎵 `doorbell`
+### 📡 Doorbell
 
-**Function**: Captures snapshots, sends notifications, and plays a video stream on active media players on sensor activation.
+`doorbell.py` turns a Home Assistant **binary_sensor** into a notfication with camera snapshot:
 
-**Example configuration**
+| Feature | What it does |
+|---------|--------------|
+| **Snapshot** | On activation, capture a JPEG from `camera.camera_live_view` → `www/snapshots/`. |
+| **Stream** | Optional `media_player` list receives a `camera.play_stream` command (pauses any current playback). |
+| **Chime** | Daily volume switch: `daytime_volume` (06:00‑22:00) → `nighttime_volume`. |
+| **Notify** | Phone push via `notify_mobiles`.  Uses `notify_receiver`, `notify_message`, and `notify_when_away`. |
+
+#### 📌 Configuration Overview
 
 ```yaml
-doorbell:
+doorbell_alarm:
   module: doorbell
   class: Doorbell
-  target_directory: '/var/lib/docker/volumes/hass_config/_data/www/doorbell/'
-  local_directory: '/local/doorbell/'
-  dependencies:
-    - notify_mobiles
+  target_directory: 'www/snapshots/'
   notify_receiver:
     - Me
-    - Mykid
-  doorbell: binary_sensor.front_door_ding
-  chime: number.smart_poe_chime_volume
-  daytime_volume: 80
-  daytime_start: 06:00:00
-  nighttime_volume: 30
-  daytime_stop: 22:00:00
-
-  camera: camera.front_door_live_view
-  media_player:
-    - media_player.NotAn_appleTV
+    - MyKids
   notify_message: 'Someone at the door'
   notify_when_away: True
+  doorbell: binary_sensor.front_door_ring
+
+  # Chime (optional)
+  chime: number.daily_chime_volume
+  daytime_volume: 80
+  daytime_start: '06:00:00'
+  nighttime_volume: 30
+  daytime_stop: '22:00:00'
+
+  # Camera & stream (optional). Have not gotten this to work on Apple TV's
+  camera: camera.front_door_live_view
+  media_player:
+    - media_player.living_room_tv
 ```
+
+**Tip:** Target directory is specific to your installation.
+> Proxmox Helper Script Home Assistant Container -> '/var/lib/docker/volumes/hass_config/_data/www/snapshots/'
+
 
 ---
 
@@ -324,8 +374,6 @@ vacation_end:
 rancilio:
   module: espresso_machine
   class: EspressoMachine
-  dependencies:
-    - notify_mobiles
   espresso_machine: switch.kitch_espresso
   coffee_timer: input_datetime.espresso
   ios_toggle: espresso
@@ -351,7 +399,6 @@ firealarm:
   modeManagementApp: manageModes
   dependencies:
     - manageModes
-    - notify_mobiles
   notify_receiver:
     - Me
     - Email
@@ -380,8 +427,6 @@ garagecover:
   class: GarageDoor
   target_directory: '/var/lib/docker/volumes/hass_config/_data/www/doorbell/'
   local_directory: '/local/doorbell/'
-  dependencies:
-    - notify_mobiles
   garage: cover.garage_door
   auto_open:
     - input: input_boolean.auto_open_garage
@@ -413,7 +458,6 @@ log_energy_usage:
   class: LogEnergyUsage
   dependencies:
     - electricalPriceCalc
-    - notify_mobiles
   csv_folder_path: '/conf/db/'
   items:
     - name: Total
@@ -572,8 +616,7 @@ When the shortcut fires the event, `notify_mobiles` will catch it, look up the m
 notify_on_rain:
   module: rain_notify
   class: Rain_Notify
-  dependencies:
-    - notify_mobiles
+
   rain_sensor:
     - sensor.rain_sensor
   rain_amount: 0.1
