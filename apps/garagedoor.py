@@ -34,18 +34,6 @@ class GarageDoor(ad.ADBase):
 
         self.garage = self.args['garage']
 
-        if 'ios_open' in self.args:
-            ios_open = self.args['ios_open']
-            self.ADapi.listen_event(self._ios_open_garage, "ios.action_fired",
-                                    actionName = ios_open,
-                                    namespace = self.HASS_namespace
-            )
-        if 'ios_close' in self.args:
-            ios_close = self.args['ios_close']
-            self.ADapi.listen_event(self._ios_close_garage, "ios.action_fired",
-                                    actionName = ios_close,
-                                    namespace = self.HASS_namespace
-            )
         auto_open_setup:dict = self.args.get('auto_open', {})
         for item in auto_open_setup:
             item.update({'handler' : None})
@@ -96,16 +84,10 @@ class GarageDoor(ad.ADBase):
             data = data
         )
 
-    def _ios_open_garage(self, event_name, data, **kwargs) -> None:
-        self.open_garage_door()
-
     def open_garage_door(self):
         self.ADapi.call_service('cover/open_cover',
                                 entity_id = self.garage,
                                 namespace = self.HASS_namespace)
-
-    def _ios_close_garage(self, event_name, data, **kwargs) -> None:
-        self.close_garage_door()
 
     def close_garage_door(self):
         self.ADapi.call_service('cover/close_cover',
