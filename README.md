@@ -70,67 +70,67 @@ Key features:
 - **Mode change**: iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps. |
 
 
-🧊 **[Appliance Home Connect](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-home-connect--start-appliances-in-home-connect-integration)**
+🧊 **[Appliance Home Connect – Start appliances in Home Connect integration](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-home-connect--start-appliances-in-home-connect-integration)**
 
 Auto-schedules appliances during *cheapest power hours* saving you money on electricity. Separate day and night programs.
 
-**⚡ Appliance Notify – Central Notification for Appliances**
+**⚡ Appliance Notify – Notification for Appliances**
 
 Watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
 It can automatically turn off the appliance and turn it back on after a minute.
 
-**🛁 Bathroom Window**
+**🛁 Bathroom Window - Reminder to close the windows**
 
 Monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
 When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients.
 
-**🌐 Change DNS Cloudflare**
+**🌐 Change DNS Cloudflare – Updates a Cloudflare `A`‑record**
 
 Updates your DNS records at Cloudflare with your new IP
 
-**🔐 Door Guard**
+**🔐 Door Guard - Reminder to close door / window**
 
 The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
 
-**📡 Doorbell**
+**📡 Doorbell - Snapshot notifications**
 
 Turns a Home Assistant **binary_sensor** into a notfication with camera snapshot sent to your phone.
 
-**☀️ End Vacation**
+**☀️ End Vacation - Turns off the vacation switch before you return home**
 
 Automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions in my other apps.
 
-**☕ Coffee Machine**
+**☕ Coffee Machine - Get your Espresso Machine warm and ready to brew in the morning**
 
 The **Espresso Machine** app monitors your coffee machine and automatically turns the switch on at a time you specify.
 
-**🔥 Fire Alarm**
+**🔥 Fire Alarm - Safety app to handle automations in case of fire**
 
 App that reacts to fire‑alarm triggers to turn off all electricity consuming entities, sends Mode Change events to set lights to full and opens covers like garage doors if anyone is home.
 
-**🚗 Garage Door**
+**🚗 Garage Door – Auto‑Open & Check of Garage doors**
 
 Automatically opens a garage cover when a chosen presence tracker returns home, and sends a photo‑notification with a “Close” button if the cover remains open during *night* or *away* mode.
 
-**📊 Log Energy Usage**
+**📊 Log Energy Usage - Keep history of your usage**
 
 A electricity logger that writes monthly energy consumption to CSV files and calculates cost‑by‑item, with optional per‑kWh pricing and guest‑usage tracking.  
 
-**🎵 Pause Media**
+**🎵 Pause Media - on absence**
 
 Pauses media players when sensors in become inactive for at least 60 seconds and resumes automatically when sensors reactivate.
 
-**⏹️ Stop Media players**
+**⏹️ Stop Media players - on sensor triggered**
 
 Stops any media player that is currently playing when a specified sensor activates.
 
-**🌧️ Rain & Wind Alert When Windows Are Open**  
+**🌧️ Rain and wind notifications - when windows are open**  
 Avoid water damage. The app watches your weather station and window sensors, and notifies you if it starts raining or the wind speed exceeds a threshold while any window is open.
 
-**🚪 Simultaneous Door / Window Guard**  
+**🚪 Simultaneous Door / Window Guard - Reminder**  
 Get a heads‑up when two sensors (e.g. a door and a window) and alerts you when **both** are opened **simultaneously** for a configurable period.
 
-**🌞 Wake‑Up Alarm**  
+**🌞 Wake Up – Custom Wake‑up Alarm**  
 Turn your bedroom into a smart sunrise experience. With a single configuration, music, lights, and volume rise in sync, while holidays and vacations keep the routine from turning on at the wrong time. Perfect for the person who wants a stress‑free, fully automated morning that respects the calendar.
 
 
@@ -191,7 +191,7 @@ name-your-app:
 
 ---
 
-## ⚡ Appliance Notify – Central Notification for Appliances
+## ⚡ Appliance Notify – Notification for Appliances
 
 **🧩 Purpose** – `appliance_notify` watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
 It can automatically turn off the appliance and turn it back on after a minute.
@@ -223,7 +223,7 @@ tumbledryer:
 
 ---
 
-## 🛁 Bathroom Window 
+## 🛁 Bathroom Window - Reminder to close the windows
 
 **🧩 Purpose** – `bathroomWindow` monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
 When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients. The notification can be silenced via a “Do not remind me” action.
@@ -259,7 +259,7 @@ window_and_door:
 
 ---
 
-## 🌐 **Change DNS Cloudflare** – Updates a Cloudflare `A`‑record with the current public IP.
+## 🌐 Change DNS Cloudflare – Updates a Cloudflare `A`‑record with the current public IP.
 
 **🧩 Purpose** – Updates your DNS records with your new IP
 
@@ -305,7 +305,7 @@ update_cloudflare_dns:
 
 ---
 
-## 🔐 Door Guard
+## 🔐 Door Guard - Reminder to close door / window
 
 **🧩 Purpose** – The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
 When the sensor finally closes, the notification is cleared automatically.  
@@ -341,7 +341,7 @@ fridge:
 
 ---
 
-## 📡 Doorbell
+## 📡 Doorbell - Snapshot notifications
 
 **🧩 Purpose** – `doorbell.py` turns a Home Assistant **binary_sensor** into a notfication with camera snapshot:
 
@@ -387,9 +387,9 @@ doorbell_alarm:
 
 ---
 
-## ☀️ End Vacation
+## ☀️ End Vacation - Turns off the vacation switch before you return home
 
-**🧩 Purpose** – Automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions in my other apps.
+**🧩 Purpose** – A helper app that automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions built into in my other apps.
 
 **⚙️ Configuration Options**
 
@@ -416,7 +416,7 @@ vacation_end:
 
 ---
 
-## ☕ Coffee Machine
+## ☕ Coffee Machine - Get your Espresso Machine warm and ready to brew in the morning
 
 **🧩 Purpose** – The **Espresso Machine** app monitors your coffee machine and automatically turns the switch on at a time you specify with an `input_datetime` (`coffee_timer`).  
 It will notify you if the machine is left on after a user‑defined “last chance” (default 15:00).  
@@ -468,9 +468,9 @@ When you tap it, the app receives the event `mobile_app_notification_action` and
 
 ---
 
-## 🔥 Fire Alarm
+## 🔥 Fire Alarm - Safety app to handle automations in case of fire
 
-**🧩 Purpose** - App that reacts to fire‑alarm triggers:
+**🧩 Purpose** - App that reacts to fire‑alarm triggers. Communicates via `MODE_CHANGE` to other apps like [ad-ElectricalManagement](https://github.com/Pythm/ad-ElectricalManagement), [ad-ClimateCommander](https://github.com/Pythm/ad-ClimateCommander) and [ad-Lightwand](https://github.com/Pythm/ad-Lightwand) that have built in procedures to stop charging car, turn down heaters and turn on maximum light in addition to the built in functions like turning off all media-players, open all screens and garage doors and turn off any 
 
 **✨ Key Features**
 
@@ -528,7 +528,7 @@ firealarm:
 **🧩 Purpose** - A app that automatically opens a garage cover when a chosen presence tracker returns home, and sends a photo‑notification with a “Close” button if the cover remains open during *night* or *away* mode.
 
 **📌 Requirements**
-A Lightwand app that supplies `translations_lightmodes` for mode events.
+A [ad-Lightwand](https://github.com/Pythm/ad-Lightwand) app that supplies `translations_lightmodes` for mode events.
 
 **⚙️ Configuration Options**
 
@@ -563,7 +563,7 @@ garagecover:
 
 ---
 
-## 📊 Log Energy Usage
+## 📊 Log Energy Usage - Keep history of your usage
 
 **🧩 Purpose** – A electricity logger that writes monthly energy consumption to CSV files and calculates cost‑by‑item, with optional per‑kWh pricing and guest‑usage tracking.  
 
@@ -633,7 +633,7 @@ pause_kids_room:
 
 ---
 
-## ⏹️ Stop Media players
+## ⏹️ Stop Media players - on sensor triggered
 
 **🧩 Purpose** – Stops any media player that is currently playing when a specified sensor turns **on**.
 
@@ -742,7 +742,7 @@ When the shortcut fires the event, `notify_mobiles` will catch it, look up the m
 
 ---
 
-## 🌧️ Rain and wind notifications when windows are open
+## 🌧️ Rain and wind notifications - when windows are open
 
 **🧩 Purpose** – Notifies when it starts to rain or when wind speed is high **and** any of the specified window sensors are open.
 
@@ -779,7 +779,7 @@ rain_notify:
 
 ---
 
-## 🚪 **Simultaneous Door / Window Guard**  
+## 🚪 **Simultaneous Door / Window Guard - Reminder**  
 
 **🧩 Purpose** – The `SimultaneousOpened` app watches two sensors (e.g. a door and a window) and alerts you when **both** are opened **simultaneously** for a configurable period.  
 It also checks the ambient temperature and only triggers the notification when the temperature is below a given threshold.
@@ -821,7 +821,7 @@ simultaneousOpened:
 
 ---
 
-## 🌞 Wake Up – Custom Wake‑up Alarm  
+## 🌞 Wake Up – Custom Wake‑up Alarm
 
 **🧩 Purpose** – **Central hub for a fully‑automatic morning routine** – play a playlist, adjust volume, light up the room, and honor holidays and vacations.
 
