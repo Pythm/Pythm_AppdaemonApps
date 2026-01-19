@@ -53,86 +53,70 @@ in the apps that relies on setting a vacation mode.
 
 
 ---
+## 📦 App List
 
-## 📦 App List  
-Below are the available apps with configuration examples and requirements.  
-**Most sensors that are not critical to the app’s functionality are optional.**
+Below are the available apps, complete with configuration examples and requirements.  
+**Most sensors that are not critical to an app’s core functionality are optional.**
 
 ### Index
 
-🔔 **[Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)**
-
-A single app that routes all alerts to mobile devices, supports Siri‑shortcuts, and can be triggered by state changes.  
+🔔 **[Notify Mobiles – Central Notification Hub](https://github.com/Pythm/Pythm_AppdaemonApps#-notify-mobiles--central-notification-hub)**  
+A single app that routes all alerts to mobile devices, supports Siri shortcuts, and can be triggered by state changes.  
 Key features:  
-- **Recipients**: list of people with their Home Assistant trackers and notification receivers.  
-- **Siri messages**: custom Home Assistant events fired from iOS that send a pre‑configured message to chosen recipients.  
-- **State‑change alerts**: automatically notify when any sensor in `notify_state_change` toggles.  
-- **Mode change**: iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps. |
+- **Recipients** – list of people with their Home Assistant trackers and notification receivers.  
+- **Siri messages** – custom Home Assistant events fired from iOS that send a pre‑configured message to chosen recipients.  
+- **State‑change alerts** – automatically notify when any sensor in `notify_state_change` toggles.  
+- **Mode change** – iOS‑shortcuts fire `ios.lightwand-mode-change`, which is logged as a `MODE_CHANGE` event for other apps.  
 
+🧊 **[Appliance Home Connect – Start appliances in Home Connect integration](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-home-connect--start-appliances-in-home-connect-integration)**  
+Auto‑schedules appliances during the cheapest power hours, saving you money on electricity. Separate day and night programs.
 
-🧊 **[Appliance Home Connect – Start appliances in Home Connect integration](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-home-connect--start-appliances-in-home-connect-integration)**
-
-Auto-schedules appliances during *cheapest power hours* saving you money on electricity. Separate day and night programs.
-
-**⚡ Appliance Notify – Notification for Appliances**
-
+⚡ **[Appliance Notify – Notification for Appliances](https://github.com/Pythm/Pythm_AppdaemonApps#-appliance-notify--notification-for-appliances)**  
 Watches appliances for a drop in power usage (finished program) and notifies the chosen users.  
-It can automatically turn off the appliance and turn it back on after a minute.
+It can automatically turn off the appliance and restart it after a minute.
 
-**🛁 Bathroom Window - Reminder to close the windows**
+🛁 **[Bathroom Window – Reminder to close the windows](https://github.com/Pythm/Pythm_AppdaemonApps#-bathroom-window---reminder-to-close-the-windows)**  
+Monitors door and window sensors that remain open for a set duration while humidity falls to normal.  
+When the door or window has remained open long enough *and* humidity has returned to a comfortable level, a notification is sent to the chosen recipients.
 
-Monitors door/window sensors that stay open for a set duration while humidity drops to normal.  
-When the door/window has been open long enough *and* the humidity is back to a comfortable level, a notification is sent to the chosen recipients.
+🌐 **[Change DNS Cloudflare – Updates a Cloudflare `A`‑record](https://github.com/Pythm/Pythm_AppdaemonApps#-change-dns-cloudflare--updates-a-cloudflare-arecord-with-the-current-public-ip)**  
+Updates your Cloudflare `A` records with your current public IP.
 
-**🌐 Change DNS Cloudflare – Updates a Cloudflare `A`‑record**
+🔐 **[Door Guard – Reminder to close door / window](https://github.com/Pythm/Pythm_AppdaemonApps#-door-guard---reminder-to-close-door--window)**  
+The DoorGuard app watches a list of door and window sensors and notifies when a sensor remains **open** for a set duration.
 
-Updates your DNS records at Cloudflare with your new IP
+📡 **[Doorbell – Snapshot notifications](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-doorbell---snapshot-notifications)**  
+Turns a Home Assistant **binary_sensor** into a notification with a camera snapshot sent to your phone.
 
-**🔐 Door Guard - Reminder to close door / window**
+☀️ **[End Vacation – Turns off the vacation switch before you return home](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#%EF%B8%8F-end-vacation---turns-off-the-vacation-switch-before-you-return-home)**  
+Automatically turns off vacation input booleans when a specified datetime is reached. This restores normal temperatures when using the Climate and Electricity Management apps and also activates the vacuum, dishwasher, and other functions in the other apps.
 
-The DoorGuard app watches a list of door/window sensors and notifies when a sensor remains **open** for a set amount of time.  
-
-**📡 Doorbell - Snapshot notifications**
-
-Turns a Home Assistant **binary_sensor** into a notfication with camera snapshot sent to your phone.
-
-**☀️ End Vacation - Turns off the vacation switch before you return home**
-
-Automatically turns off vacation input‑booleans (`input_boolean`) when a given datetime is reached. This will get temperatures back to normal when using my Climate and Electricity Management apps, in addition to run the vacuum and dishwasher and other functions in my other apps.
-
-**☕ Coffee Machine - Get your Espresso Machine warm and ready to brew in the morning**
-
+☕ **[Coffee Machine – Get your Espresso Machine warm and ready to brew in the morning](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-coffee-machine---get-your-espresso-machine-warm-and-ready-to-brew-in-the-morning)**  
 The **Espresso Machine** app monitors your coffee machine and automatically turns the switch on at a time you specify.
 
-**🔥 Fire Alarm - Safety app to handle automations in case of fire**
+🔥 **[Fire Alarm – Safety app to handle automations in case of fire](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-fire-alarm---safety-app-to-handle-automations-in-case-of-fire)**  
+Reacts to fire‑alarm triggers by turning off all electrically powered entities, sending a Mode Change event to set lights to full, and opening covers such as garage doors if anyone is home.
 
-App that reacts to fire‑alarm triggers to turn off all electricity consuming entities, sends Mode Change events to set lights to full and opens covers like garage doors if anyone is home.
+🚗 **[Garage Door – Auto‑Open & Check of Garage doors](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-garage-door--autoopen--check-of-garage-doors)**  
+Automatically opens a garage cover when a chosen presence tracker returns home and sends a photo‑notification with a “Close” button if the cover remains open during *night* or *away* mode.
 
-**🚗 Garage Door – Auto‑Open & Check of Garage doors**
+📊 **[Log Energy Usage – Keep history of your usage](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-log-energy-usage---keep-history-of-your-usage)**  
+An electricity logger that writes monthly energy consumption to CSV files and calculates cost‑by‑item, with optional per‑kWh pricing and guest‑usage tracking.
 
-Automatically opens a garage cover when a chosen presence tracker returns home, and sends a photo‑notification with a “Close” button if the cover remains open during *night* or *away* mode.
+🎵 **[Pause Media – on absence](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-pause-media---on-absence)**  
+Pauses media players when sensors become inactive for at least 60 seconds and resumes automatically when sensors reactivate.
 
-**📊 Log Energy Usage - Keep history of your usage**
-
-A electricity logger that writes monthly energy consumption to CSV files and calculates cost‑by‑item, with optional per‑kWh pricing and guest‑usage tracking.  
-
-**🎵 Pause Media - on absence**
-
-Pauses media players when sensors in become inactive for at least 60 seconds and resumes automatically when sensors reactivate.
-
-**⏹️ Stop Media players - on sensor triggered**
-
+⏹️ **[Stop Media players – on sensor triggered](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#%EF%B8%8F-stop-media-players---on-sensor-triggered)**  
 Stops any media player that is currently playing when a specified sensor activates.
 
-**🌧️ Rain and wind notifications - when windows are open**  
-Avoid water damage. The app watches your weather station and window sensors, and notifies you if it starts raining or the wind speed exceeds a threshold while any window is open.
+🌧️ **[Rain and wind notifications – when windows are open](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#%EF%B8%8F-rain-and-wind-notifications---when-windows-are-open)**  
+Avoid water damage. The app watches your weather station and window sensors and notifies you if it starts raining or if wind speed exceeds a threshold while any window is open.
 
-**🚪 Simultaneous Door / Window Guard - Reminder**  
-Get a heads‑up when two sensors (e.g. a door and a window) and alerts you when **both** are opened **simultaneously** for a configurable period.
+🚪 **[Simultaneous Door / Window Guard – Reminder](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-simultaneous-door--window-guard---reminder)**  
+Get a heads‑up when two sensors (e.g., a door and a window) are opened simultaneously for a configurable period.
 
-**🌞 Wake Up – Custom Wake‑up Alarm**  
-Turn your bedroom into a smart sunrise experience. With a single configuration, music, lights, and volume rise in sync, while holidays and vacations keep the routine from turning on at the wrong time. Perfect for the person who wants a stress‑free, fully automated morning that respects the calendar.
-
+🌞 **[Wake Up – Custom Wake‑up Alarm](https://github.com/Pythm/Pythm_AppdaemonApps?tab=readme-ov-file#-wake-up--custom-wakeup-alarm)**  
+Turn your bedroom into a smart sunrise experience. With a single configuration, music, lights, and volume rise in sync, while holidays and vacations keep the routine from turning on at the wrong time. Perfect for anyone who wants a stress‑free, fully automated morning that respects the calendar.
 
 ---
 
