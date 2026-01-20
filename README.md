@@ -743,6 +743,8 @@ simultaneousOpened:
 
 **🧩 Purpose** – **Central hub for a fully‑automatic morning routine** – play a playlist, adjust volume, light up the room, and honor holidays and vacations.
 
+**📌 Requirements**
+- Python packages **geopy** and **holliday** listed in requirements.txt. If running Appdaemon addon please add the packages like this: https://github.com/Pythm/ad-ModeManagement/issues/15#issuecomment-3688156477
 
 **✨ Key Features**
 
