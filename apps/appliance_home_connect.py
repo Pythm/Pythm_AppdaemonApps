@@ -102,7 +102,7 @@ class HomeConnect(ad.ADBase):
         self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
 
         # Listens for mode events
-        self.lightmode = 'none'
+        self.lightmode = translations.normal
         self.ADapi.listen_event(self.mode_event, translations.MODE_CHANGE, namespace = self.HASS_namespace)
 
     # ------------------------------------------------------------------
