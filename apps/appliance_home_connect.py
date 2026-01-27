@@ -9,6 +9,8 @@ __version__ = "0.2.2"
 from appdaemon import adbase as ad
 import datetime
 
+from translations_lightmodes import translations
+
 class HomeConnect(ad.ADBase):
 
     def initialize(self):
@@ -32,35 +34,53 @@ class HomeConnect(ad.ADBase):
         else:
             self.away_state = False
 
+        if 'options' in self.args:
+            self.nightmode_calculate = 'run_during_nightmode' in self.args['options']
+            self.awaymode_calculete = 'run_during_awaymode' in self.args['options']
+        else:
+            self.nightmode_calculate = False
+            self.awaymode_calculete = False
+
             # Program setup
         self.remote_start = self.args['remote_start']
         self.active_program = self.args['active_program']
+
+        self.nightprogram = None
         if 'night' in self.args:
             self.nightprogram = self.args['night']
             if not 'running_time' in self.nightprogram:
                 self.nightprogram.update(
                     {'running_time': 4}
                 )
-        else:
-            self.nightprogram = None
-            self.ADapi.log(
-                f"Night program not configured for {self.ADapi.get_state(self.remote_start, attribute='friendly_name')}.",
-                level = 'INFO'
-            )
+            if not 'finish_by' in self.nightprogram:
+                self.nightprogram.update(
+                    {'finish_by': 7}
+                )
+
         if 'day' in self.args:
             self.dayprogram = self.args['day']
             if not 'running_time' in self.dayprogram:
                 self.dayprogram.update(
                     {'running_time': 3}
                 )
+            if not 'finish_by' in self.dayprogram:
+                self.dayprogram.update(
+                    {'finish_by': 16}
+                )
         elif self.nightprogram:
             self.dayprogram = self.nightprogram
         else:
             self.dayprogram = None
             self.ADapi.log(
-                f"Day program not configured for {self.ADapi.get_state(self.remote_start, attribute='friendly_name')}.",
-                level = 'INFO'
+                f"Program not configured for {self.ADapi.get_state(self.remote_start, attribute='friendly_name')}."
+                "Aborting setup",
+                level = 'ERROR'
             )
+            return
+
+        if not self.nightprogram:
+            self.nightprogram = self.dayprogram
+
         self.handler = None
 
         self.ADapi.listen_state(self._remoteStartRequested, self.remote_start,
@@ -74,15 +94,99 @@ class HomeConnect(ad.ADBase):
         ):
             self.ADapi.run_in(self._findTimeForWashing,70)
 
-        self.dayruntime = self.ADapi.parse_datetime('07:00:00') - datetime.timedelta(hours=int(self.nightprogram['running_time']))
-        self.dayruntime_stop = self.ADapi.parse_datetime('16:00:00') - datetime.timedelta(hours=int(self.dayprogram['running_time']))
+        self.dayruntime = self.ADapi.parse_datetime('00:00:00') + datetime.timedelta(hours=int(self.nightprogram['finish_by'])) - datetime.timedelta(hours=int(self.nightprogram['running_time']))
+        self.dayruntime_stop = self.ADapi.parse_datetime('00:00:00') + datetime.timedelta(hours=int(self.dayprogram['finish_by'])) - datetime.timedelta(hours=int(self.dayprogram['running_time']))
 
         self.turn_on_action_day:str = 'turn_on_now_' + str(self.dayprogram)
         self.turn_on_action_night:str = 'turn_on_now_' + str(self.nightprogram)
         self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
 
+        # Listens for mode events
+        self.lightmode = 'none'
+        self.ADapi.listen_event(self.mode_event, translations.MODE_CHANGE, namespace = self.HASS_namespace)
+
+    # ------------------------------------------------------------------
+    #  Remote start listener – only schedules if mode does not schedule
+    # ------------------------------------------------------------------
     def _remoteStartRequested(self, entity, attribute, old, new, kwargs) -> None:
-        self._findTimeForWashing(0)
+        """Trigger scheduling when a remote start is requested."""
+
+        if self.ADapi.now_is_between(str(self.dayruntime.time()), str(self.dayruntime_stop.time())):
+            if not self.awaymode_calculete:
+                self._scheduleWashing(self.dayprogram)
+        elif not self.nightmode_calculate:
+           self._scheduleWashing(self.nightprogram)
+
+    # ------------------------------------------------------------------
+    #  Mode change listener – schedules immediately when the mode
+    #  becomes active
+    # ------------------------------------------------------------------
+    def mode_event(self, event_name, data, **kwargs) -> None:
+        """ Listens to mode events and reacts on night and away """
+
+        self.lightmode = data['mode']
+        if self.lightmode == translations.away and self.awaymode_calculete:
+            self._scheduleWashing(self.dayprogram)
+        if self.lightmode == translations.night and self.nightmode_calculate:
+            self._scheduleWashing(self.nightprogram)
+
+    # ------------------------------------------------------------------
+    #  Away state listener – re‑schedule when we return home
+    # ------------------------------------------------------------------
+    def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
+        self.away_state = (new == 'on')
+        if not self.away_state:
+            self._scheduleWashing(self.dayprogram)
+
+    # ------------------------------------------------------------------
+    #  Centralised scheduling logic – calculates cheapest slot and
+    #  schedules the dishwasher
+    # ------------------------------------------------------------------
+    def _scheduleWashing(self, program: dict) -> None:
+        """Schedule the dishwasher using the cheapest time window."""
+
+        now = self.ADapi.datetime(aware=True)
+        data = {
+            'tag': str(self.remote_start),
+            'actions': [
+                {'action': self.turn_on_action_day, 'title': 'Turn on dayprogram'},
+                {'action': self.turn_on_action_night, 'title': 'Turn on nightprogram'}
+            ]
+        }
+
+        # Decide parameters based on whether we are in day or night mode
+        if program == self.dayprogram:
+            before_next_day = True
+        else:
+            before_next_day = False
+
+        startWashingAt, _, _ = self.electricalPrice.get_Continuous_Cheapest_Time(
+            hoursTotal=program['running_time'],
+            calculateBeforeNextDayPrices=before_next_day,
+            finishByHour=program['finish_by']
+        )
+
+        if startWashingAt and startWashingAt > now:
+            self._resetHandler()
+            self.handler = self.ADapi.run_at(
+                self.startWashing,
+                startWashingAt,
+                program=program['program']
+            )
+            self.notify_app.send_notification(
+                message=f"Starting {program['program']} at {startWashingAt}",
+                message_title="Appliances",
+                message_recipient=self.notify_receiver,
+                also_if_not_home=False,
+                data=data
+            )
+        else:
+            # No cheap slot found – run after a short delay
+            self.ADapi.run_in(
+                self.startWashing,
+                10,
+                program=program['program']
+            )
 
     def _findTimeForWashing(self, kwargs) -> None:
         now = self.ADapi.datetime(aware=True)
@@ -165,13 +269,6 @@ class HomeConnect(ad.ADBase):
                 except Exception as e:
                     self.ADapi.log(f"Not possible to stop timer for appliance. {e}", level = 'DEBUG')
             self.handler = None
-
-    def _awayStateListen(self, entity, attribute, old, new, kwargs) -> None:
-        if new == 'on':
-            self.away_state = True
-        else:
-            self.away_state = False
-            self._findTimeForWashing(0)
 
     def _notify_event(self, event_name, data, **kwargs) -> None:
         program = None

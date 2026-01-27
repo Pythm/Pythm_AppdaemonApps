@@ -93,13 +93,19 @@ name-your-app:
   remote_start: binary_sensor.remote_start_machine  # Switch that enables remote start
   active_program: select.dishwasher_program         # Select entity for program choice
 
+  options:
+    - run_during_nightmode                          # Calculate times when night mode is activated
+    - run_during_awaymode                           # Calculate times when away mode is activated during daytime
+
   # 4️⃣ Program definitions
   day:                                              # Daytime program (runs 07:00-16:00)
     program: dishcare_dishwasher_program_eco_50     # Program name in Home Connect
     running_time: 3                                 # Hours (default: 3)
+    finish_by: 16                                   # Hour to finish at latest
   night:                                            # Nighttime program (runs 16:00-07:00)
     program: dishcare_dishwasher_program_night_wash # Program name in Home Connect
     running_time: 4                                 # Hours (default: 4)
+    finish_by: 7                                    # Hour to finish at latest
 ```
 
 **📝 Notes**
