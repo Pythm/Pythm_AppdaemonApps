@@ -46,6 +46,12 @@ class GarageDoor(ad.ADBase):
                     self._start_listen_to_auto_open_garagedoor(item = item)
             else:
                 self._start_listen_to_auto_open_garagedoor(item = item)
+            if 'presence' in item:
+                self.ADapi.listen_state(self._checkGarageWhenAway, item['presence'],
+                                        new = 'away',
+                                        old = 'home',
+                                        namespace = self.HASS_namespace
+                )
 
         self.close_garagedoor_action:str = 'close_garagedoor_' + str(self.garage)
         self.camera = self.args.get('camera', None)
@@ -57,7 +63,7 @@ class GarageDoor(ad.ADBase):
     def mode_event(self, event_name, data, **kwargs) -> None:
         """ Listens to mode events and reacts on night and away """
 
-        if data['mode'] in (translations.away, translations.night):
+        if data['mode'] in (translations.night):
             if self.ADapi.get_state(self.garage, namespace = self.namespace) != 'closed':
                 self.send_photo_notification()
 
@@ -101,6 +107,10 @@ class GarageDoor(ad.ADBase):
 
         else:
             self._stop_listen_handler(item = item)
+
+    def _checkGarageWhenAway(self, entity, attribute, old, new, kwargs) -> None:
+        if self.ADapi.get_state(self.garage, namespace = self.namespace) != 'closed':
+            self.send_photo_notification()
 
     def _start_listen_to_auto_open_garagedoor(self, item:dict) -> None:
         item['handler'] = self.ADapi.listen_state(

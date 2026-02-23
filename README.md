@@ -93,13 +93,19 @@ name-your-app:
   remote_start: binary_sensor.remote_start_machine  # Switch that enables remote start
   active_program: select.dishwasher_program         # Select entity for program choice
 
+  options:
+    - run_during_nightmode                          # Calculate times when night mode is activated
+    - run_during_awaymode                           # Calculate times when away mode is activated during daytime
+
   # 4️⃣ Program definitions
   day:                                              # Daytime program (runs 07:00-16:00)
     program: dishcare_dishwasher_program_eco_50     # Program name in Home Connect
     running_time: 3                                 # Hours (default: 3)
+    finish_by: 16                                   # Hour to finish at latest
   night:                                            # Nighttime program (runs 16:00-07:00)
     program: dishcare_dishwasher_program_night_wash # Program name in Home Connect
     running_time: 4                                 # Hours (default: 4)
+    finish_by: 7                                    # Hour to finish at latest
 ```
 
 **📝 Notes**
@@ -219,6 +225,43 @@ update_cloudflare_dns:
   enable_proxy: true          # optional – defaults to true
   # ip_sensor: sensor.my_public_ip  # optional; omit to use ipify polling
 ```
+
+
+---
+## 🔋 Battery Charger – SOC Management
+
+**🧩 Purpose** – Prevent a device from remaining fully charged while plugged in.
+
+**✨ Key Features**
+
+- Monitors battery state, level, and device location.  
+- Turns the charger off above 80 % SOC and turns it on below 75 % SOC.  
+
+**🔧 Example Configuration**
+
+```yaml
+kids_ipad:
+  module: charger_controller
+  class: MobileChargerController
+  charger_switch: switch.stue_stikk_11_east
+  battery_state: sensor.kids_ipad_pro_battery_state
+  battery_level: sensor.kids_ipad_pro_battery_level
+  device_location: device_tracker.kids_ipad_pro
+```
+
+**🔧 How to Trigger Battery‑Level Updates from iOS (via Shortcuts)**
+
+1. Open the Shortcuts app.  
+2. Create a new personal automation.  
+3. Choose **Battery Level**.  
+4. Set the level to **80**.  
+5. Select the condition **“Above 80 %”** (for the high‑threshold trigger).  
+6. **Execute immediately**.  
+7. Tap **Next**.  
+8. Select **“Create new shortcut.”**  
+9. Search for and select **Home Assistant**.  
+10. Choose **“Update Sensors.”**  
+11. Repeat steps 2–10 to create a separate automation for **“Below 75 %.”**
 
 
 ---
