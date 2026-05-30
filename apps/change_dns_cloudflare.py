@@ -3,7 +3,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 import asyncio
 import json
@@ -36,7 +36,7 @@ class Change_DNS(ad.ADBase):
         if 'ip_sensor' in self.args:
             ip_sensor = self.args['ip_sensor']
             self.ADapi.listen_state(self._ha_DNS_ip_sensor_changed, ip_sensor)
-            self.public_ip = self.ADapi.get_state(ip_sensor)
+            self.dns_ip = self.ADapi.get_state(ip_sensor)
         else:
             self.ADapi.create_task(self._get_public_ip())
             self.ADapi.run_hourly(self._checkPublicIPAddress, "00:10:00")
@@ -47,7 +47,7 @@ class Change_DNS(ad.ADBase):
         if (
             new != 'unavailable'
             and new != 'unknown'
-            and new != self.public_ip
+            and new != self.dns_ip
         ):
             self.public_ip = new
             self.ADapi.log(f"Detected new IP: {self.public_ip}") ###
@@ -118,10 +118,10 @@ class Change_DNS(ad.ADBase):
             cloudflare_ip = None
 
         if cloudflare_ip is not None:
-            self.dns_ip = cloudflare_ip
+            self.public_ip = cloudflare_ip
             if (
-                cloudflare_ip != self.public_ip
-                and self.public_ip is not None
+                cloudflare_ip != self.dns_ip
+                and self.dns_ip is not None
             ):
                 self.ADapi.create_task(self._updateDNS())
 
@@ -149,3 +149,5 @@ class Change_DNS(ad.ADBase):
             self.ADapi.log(f"Not able to update IP to cloudflare. "
                 f"Exception: {e}",
                 level='INFO')
+        else:
+            self.dns_ip = self.public_ip

@@ -3,7 +3,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 from appdaemon import adbase as ad
 
@@ -27,6 +27,8 @@ class Rain_Notify(ad.ADBase):
         self.rain_amount:float = self.args.get('rain_amount', 0.1)
 
         self.anemometer_speed:float = self.args.get('anemometer_speed',40)
+
+        self.lux_level = self.args.get('lux_level', None)
 
         self.ADapi.listen_event(self.weather_event, 'WEATHER_CHANGE',
             namespace = self.HASS_namespace
@@ -62,6 +64,18 @@ class Rain_Notify(ad.ADBase):
             )
             self.push_notice = False
             self.ADapi.run_in(self.resetNotify, 10800)
+
+        if self.lux_level is not None:
+            if float(data['lux']) < self.lux_level and self.windowsopened() > 0 and self.push_notice:
+                self.notify_app.send_notification(
+                    message = f"It's getting dark and {self.windows_needed_to_be_closed} needs attention",
+                    message_title = "Lux",
+                    message_recipient = self.notify_receiver,
+                    also_if_not_home = False
+                )
+                self.push_notice = False
+                self.ADapi.run_in(self.resetNotify, 10800)
+
 
     def windowsopened(self) -> int:
         """ Returns number of opened windows and creates a list of those open """
