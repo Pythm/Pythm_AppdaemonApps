@@ -729,6 +729,7 @@ rain_notify:
 
   rain_amount: 0.1                  # (optional) Minimum rain (mm) to trigger notification
   anemometer_speed: 40              # (optional) Minimum wind speed (km/h) to trigger notification
+  lux_level: 900                    # (optional) Lux drops below given value.
 
   windowsensors:                    # (required) List of window sensor entities
     - binary_sensor.window_kitchen
@@ -742,7 +743,7 @@ rain_notify:
 
 ## 🚪 **Simultaneous Door / Window Guard - Reminder**  
 
-**🧩 Purpose** – The `SimultaneousOpened` app watches two sensors (e.g. a door and a window) and alerts you when **both** are opened **simultaneously** for a configurable period.  
+**🧩 Purpose** – The `SimultaneousOpened` app watches if two sensors (e.g. a window and a door) is state 'on' (open) and alerts you when **both** are opened **simultaneously** for a configurable period. You can also configure an input_boolean as `simultaneous_switch` to use as a 'on' state in other apps.
 It also checks the ambient temperature and only triggers the notification when the temperature is below a given threshold.
 
 
@@ -767,11 +768,13 @@ simultaneousOpened:
   notify_receiver:                # Who should receive the message
     - MyKid
 
-  sensors:                        # List of primary sensors to watch
+  simultaneous_switch: input_boolean.window_and_door
+
+  sensors:                        # List of primary sensors to watch. Usually windows
     - sensor: binary_sensor.door_contact
       duration: 300                # Seconds the sensor must stay 'on' before the check runs
 
-  simultaneous_sensor: binary_sensor.window_door_is_open # Secondary sensor to watch
+  simultaneous_sensor: binary_sensor.window_door_is_open # Secondary sensor to watch. Usually a door
   temperature_sensor: sensor.temperature                 # Optional temperature sensor
   check_below_temp: 23                                   # Optional: temp threshold
 
