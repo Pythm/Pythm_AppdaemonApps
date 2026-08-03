@@ -79,7 +79,7 @@ class SimultaneousOpen(ad.ADBase):
         self.both_sensors_opened()
 
 
-    def check_second_sensor_open() -> bool:
+    def check_second_sensor_open(self) -> bool:
 
         if self.ADapi.get_state(self.simultaneous_sensor, namespace = self.HASS_namespace) == 'on':
             return True
