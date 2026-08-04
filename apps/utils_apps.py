@@ -65,3 +65,15 @@ def save_image_with_timestamp(
     )
 
     return local_path
+
+def cancel_listen_handler(ADapi, handler, name) -> bool:
+    if handler is not None:
+        try:
+            ADapi.cancel_listen_state(handler)
+        except Exception as e:
+            ADapi.log(
+                f"Not able to stop listen handler for {name}. Exception: {e}",
+                level = 'DEBUG'
+            )
+            return False
+    return True

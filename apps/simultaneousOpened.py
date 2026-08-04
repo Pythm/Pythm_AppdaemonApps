@@ -10,6 +10,7 @@ __version__ = "0.2.0"
 from appdaemon import adbase as ad
 
 from ad_config import Sensor
+from utils_apps import cancel_listen_handler
 
 class SimultaneousOpen(ad.ADBase):
 
@@ -37,6 +38,12 @@ class SimultaneousOpen(ad.ADBase):
                 "Aborting setup."
             )
 
+        self.ADapi.listen_state(self.sensor_closed, self.simultaneous_sensor,
+            new = 'off',
+            namespace = self.HASS_namespace
+        )
+        self.simultaneous_handler = None
+
         # Get sensors
         self.sensors = [Sensor.from_yaml(item) for item in self.args.get('sensors', [])]
         for sensor in self.sensors:
@@ -45,12 +52,10 @@ class SimultaneousOpen(ad.ADBase):
             self.ADapi.listen_state(self.openedForDuration, sensor.sensor,
                 new = 'on',
                 duration = sensor.delay,
-                sensor = sensor,
                 namespace = self.HASS_namespace
             )
             self.ADapi.listen_state(self.sensor_closed, sensor.sensor,
                 new = 'off',
-                sensor = sensor,
                 namespace = self.HASS_namespace
             )
 
@@ -62,31 +67,38 @@ class SimultaneousOpen(ad.ADBase):
         self.heater = self.args.get('climate', None)
 
     def openedForDuration(self, entity, attribute, old, new, **kwargs) -> None:
-        sensor = kwargs['sensor']
-        
+        """ Callback when sensor has been open for given duration """
+
         both_open:bool = self.check_second_sensor_open()
         if both_open:
             self.both_sensors_opened()
 
         else:
-            sensor.handler = self.ADapi.listen_state(self.second_sensor_opened, self.simultaneous_sensor,
+            self.simultaneous_handler = self.ADapi.listen_state(self.second_sensor_opened, self.simultaneous_sensor,
                 new = 'on',
-                duration = sensor.delay,
+                duration = 30,
                 namespace = self.HASS_namespace
             )
 
-    def second_sensor_opened(self, entity, attribute, old, new, **kwargs):
+    def second_sensor_opened(self, entity, attribute, old, new, **kwargs) -> None:
+        """ Callback when second sensor is opened """
+
         self.both_sensors_opened()
+        if cancel_listen_handler(ADapi = self.ADapi, handler = self.simultaneous_handler, name = self.simultaneous_sensor):
+            self.simultaneous_handler = None
 
 
     def check_second_sensor_open(self) -> bool:
+        """ Check if second sensor is on (open) """
 
         if self.ADapi.get_state(self.simultaneous_sensor, namespace = self.HASS_namespace) == 'on':
             return True
 
         return False
 
-    def both_sensors_opened(self):
+    def both_sensors_opened(self) -> None:
+        """ Both a main sensor and a simultaneous sensor are on (open) """
+
         self.ADapi.call_service('input_boolean/turn_on',
                 entity_id = self.simultaneous_switch,
                 namespace = self.HASS_namespace,
@@ -119,17 +131,21 @@ class SimultaneousOpen(ad.ADBase):
         
         self.notify_about_both_opened()
 
-    def sensor_closed(self, entity, attribute, old, new, kwargs):
-        sensor = kwargs['sensor']
-        if sensor.handler is not None:
-            try:
-                self.ADapi.cancel_listen_state(sensor.handler)
-            except Exception as exc:
-                self.ADapi.log(
-                    f"Could not stop hander in doorGuard {self.handler}. Exception: {exc}",
-                    level = 'DEBUG'
-                )
-            sensor.handler = None
+    def sensor_closed(self, entity, attribute, old, new, kwargs) -> None:
+        """ A sensor is closed """
+
+        if self.ADapi.get_state(self.simultaneous_sensor, namespace = self.HASS_namespace) == 'on':
+            for sensor in self.sensors:
+                if self.ADapi.get_state(sensor.sensor, namespace = self.HASS_namespace) == 'on':
+                    return
+
+        if cancel_listen_handler(ADapi = self.ADapi, handler = self.simultaneous_handler, name = self.simultaneous_sensor):
+            self.simultaneous_handler = None
+
+        self.ADapi.call_service('input_boolean/turn_off',
+            entity_id = self.simultaneous_switch,
+            namespace = self.HASS_namespace,
+        )
 
         data = {
             'tag' : str(self.name),
@@ -142,15 +158,16 @@ class SimultaneousOpen(ad.ADBase):
             data = data
         )
 
-    def notify_about_both_opened(self):
+    def notify_about_both_opened(self) -> None:
+        """ Sends notification """
 
-            data = {
-                'tag' : str(self.name)
-                }
-            self.notify_app.send_notification(
-                message = self.notify_message,
-                message_title = self.notify_title,
-                message_recipient = self.notify_receiver,
-                also_if_not_home = False,
-                data = data
-            )
+        data = {
+            'tag' : str(self.name)
+            }
+        self.notify_app.send_notification(
+            message = self.notify_message,
+            message_title = self.notify_title,
+            message_recipient = self.notify_receiver,
+            also_if_not_home = False,
+            data = data
+        )
