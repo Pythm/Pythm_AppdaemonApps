@@ -130,12 +130,15 @@ class LogEnergyUsage(ad.ADBase):
                             guestUsage += float(item['guestUsage'])
                         guestUsage += item_price
                         item.update({'guestUsage': guestUsage})
+                        self.ADapi.log(f"Guest item_price for {name} was {round(item_price,2)} with guestUsage {round(item['guestUsage'],2)}", level = 'INFO') ###
                     else:
                         if 'guestUsage' in item:
                             if float(item['guestUsage']) > 0:
-                                self.ADapi.log(f"Guest Consumption cost for {name} was {round(item['guestUsage'],2)}", level = 'INFO')
+                                guestUsage += float(item['guestUsage'])
+                                guestUsage += item_price
+                                self.ADapi.log(f"Guest Consumption cost for {name} was {round(guestUsage,2)}", level = 'INFO')
                                 self.notify_app.send_notification(
-                                    message = f"Guest Consumption cost for {name} was {round(item['guestUsage'],2)}",
+                                    message = f"Guest Consumption cost for {name} was {round(guestUsage,2)}",
                                     message_title = "Guest Energy Usage",
                                     message_recipient = self.notify_receiver,
                                     also_if_not_home = True

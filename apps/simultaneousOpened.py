@@ -76,7 +76,7 @@ class SimultaneousOpen(ad.ADBase):
         else:
             self.simultaneous_handler = self.ADapi.listen_state(self.second_sensor_opened, self.simultaneous_sensor,
                 new = 'on',
-                duration = 30,
+                duration = 60,
                 namespace = self.HASS_namespace
             )
 
@@ -84,9 +84,6 @@ class SimultaneousOpen(ad.ADBase):
         """ Callback when second sensor is opened """
 
         self.both_sensors_opened()
-        if cancel_listen_handler(ADapi = self.ADapi, handler = self.simultaneous_handler, name = self.simultaneous_sensor):
-            self.simultaneous_handler = None
-
 
     def check_second_sensor_open(self) -> bool:
         """ Check if second sensor is on (open) """
@@ -123,11 +120,12 @@ class SimultaneousOpen(ad.ADBase):
                     level = 'WARNING'
                 )
 
-        if temp < self.check_below_temp:
-            if self.heater is not None:
-                ac_state = self.ADapi.get_state(self.heater, namespace = self.HASS_namespace)
-                if ac_state == 'fan_only':
-                    return
+        if temp > self.check_below_temp:
+            return
+        if self.heater is not None:
+            ac_state = self.ADapi.get_state(self.heater, namespace = self.HASS_namespace)
+            if ac_state in ['fan_only', 'off']:
+                return
         
         self.notify_about_both_opened()
 
