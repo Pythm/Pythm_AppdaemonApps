@@ -8,7 +8,7 @@ Turns off switches and opens screens/garagedoors
 
 __version__ = "0.1.4"
 
-from appdaemon.plugins.hass.hassapi import Hass
+from appdaemon import adbase as ad
 import json
 import csv
 
@@ -16,13 +16,14 @@ from translations_lightmodes import translations
 
 UNAVAIL = ('unavailable', 'unknown')
 
-class FireAlarm(Hass):
+class FireAlarm(ad.ADBase):
 
     def initialize(self):
+        self.ADapi = self.get_ad_api()
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
 
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
-        self.notify_app = self.get_app(name_of_notify_app)
+        self.notify_app = self.ADapi.get_app(name_of_notify_app)
         self.notify_receiver = self.args['notify_receiver']
 
         self.anyone_home = True
@@ -30,17 +31,17 @@ class FireAlarm(Hass):
         if mode_management_app_name is None:
             self.mode_management_app = None
         else:
-            self.mode_management_app = self.get_app(mode_management_app_name)
+            self.mode_management_app = self.ADapi.get_app(mode_management_app_name)
             self.anyone_home = self.mode_management_app.anyone_home()
         
 
         alarms = self.args.get('alarms', [])
         for alarm in alarms:
-            self.listen_state(self._alarmactivated, alarm)
+            self.ADapi.listen_state(self._alarmactivated, alarm)
         
         self.turn_off_items = self.args.get('turn_off', [])
 
-        sensor_states = self.get_state()
+        sensor_states = self.ADapi.get_state()
         for sensor_id, sensor_states in sensor_states.items():
             if 'media_player.' in sensor_id:
                 if not sensor_id in self.turn_off_items:
@@ -50,13 +51,15 @@ class FireAlarm(Hass):
 
     def _alarmactivated(self, entity, attribute, old, new, kwargs) -> None:
         if new == 'on':
-            self.fire_event(translations.MODE_CHANGE, mode = translations.fire)
+            self.ADapi.fire_event(translations.MODE_CHANGE, mode = translations.fire)
             for item in self.turn_off_items:
                 try:
-                    if self.get_state(item) == 'on':
-                        self.turn_off(item)
+                    if self.ADapi.get_state(item) == 'on':
+                        self.ADapi.call_service('homeassistant/turn_off',
+                            entity_id = item
+                        )
                 except Exception as exc:
-                    self.log(
+                    self.ADapi.log(
                         f"Could not turn off {item} when fire alarm was trigered. Exception: {exc}",
                         level = 'INFO'
                     )
@@ -66,10 +69,10 @@ class FireAlarm(Hass):
             if self.anyone_home:
                 for screen in self.screens:
                     try:
-                        if self.get_state(screen, attribute='current_position') != 100:
-                            self.call_service('cover/open_cover', entity_id= screen)
+                        if self.ADapi.get_state(screen, attribute='current_position') != 100:
+                            self.ADapi.call_service('cover/open_cover', entity_id= screen)
                     except Exception as exc:
-                        self.log(
+                        self.ADapi.log(
                             f"Could not open {screen} when fire alarm was trigered. Exception: {exc}",
                             level = 'INFO'
                         )
@@ -85,12 +88,12 @@ class FireAlarm(Hass):
             new == 'off'
             and old == 'on'
         ):
-            self.fire_event(translations.MODE_CHANGE, mode = translations.false_alarm)
+            self.ADapi.fire_event(translations.MODE_CHANGE, mode = translations.false_alarm)
         elif (
             new not in UNAVAIL and
             old not in UNAVAIL
         ):
-            self.log(
+            self.ADapi.log(
                 f"Fire Alarm: {entity}. New: {new}. Old: {old}. Logic not implemented. Please open a issue with this info.",
                 level = 'INFO'
             )

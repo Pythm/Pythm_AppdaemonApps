@@ -6,11 +6,12 @@ Stop media playing on device based on sensor input
 
 __version__ = "0.1.0"
 
-from appdaemon.plugins.hass.hassapi import Hass
+from appdaemon import adbase as ad
 
-class MediaStop(Hass):
+class MediaStop(ad.ADBase):
 
     def initialize(self):
+        self.ADapi = self.get_ad_api()
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
         self.SensorHandler:list = []
 
@@ -19,13 +20,13 @@ class MediaStop(Hass):
 
         if 'activate_switch' in self.args:
             self.activate_switch = self.args['activate_switch']
-            self.listen_state(self.autoTurnOff, self.activate_switch,
+            self.ADapi.listen_state(self.autoTurnOff, self.activate_switch,
                 new = 'on',
                 namespace = self.HASS_namespace
             )
         else:
             for sensor in self.sensors:
-                handler = self.listen_state(self.StopMediaPlaying, sensor,
+                handler = self.ADapi.listen_state(self.StopMediaPlaying, sensor,
                     new = 'on',
                     namespace = self.HASS_namespace
                 )
@@ -35,7 +36,7 @@ class MediaStop(Hass):
 
         if new == 'on':
             for sensor in self.sensors:
-                handler = self.listen_state(self.StopMediaPlaying, sensor,
+                handler = self.ADapi.listen_state(self.StopMediaPlaying, sensor,
                     new = 'on',
                     namespace = self.HASS_namespace
                 )
@@ -43,10 +44,10 @@ class MediaStop(Hass):
         else:
             for handler in self.SensorHandler:
                 try:
-                    self.cancel_listen_state(handler)
+                    self.ADapi.cancel_listen_state(handler)
                     handler = None
                 except:
-                    self.log(
+                    self.ADapi.log(
                         f"Ikke mulig å stoppe listen state for {handler} i StopMedia",
                         level = 'DEBUG'
                     )
@@ -56,10 +57,10 @@ class MediaStop(Hass):
         """ Auto stops mediaplayer on sensor detection/activation """
 
         for player in self.mediaplayer:
-            state = self.get_state(player, namespace = self.HASS_namespace)
+            state = self.ADapi.get_state(player, namespace = self.HASS_namespace)
             
             if state not in {'off', 'standby', 'unavailable', 'idle'}:
-                self.call_service('media_player/media_stop',
+                self.ADapi.call_service('media_player/media_stop',
                     entity_id = player,
                     namespace = self.HASS_namespace
                 )
