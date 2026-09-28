@@ -633,6 +633,7 @@ It handles three core tasks:
 | Feature | What it does | How you use it |
 |---------|--------------|----------------|
 | **Central hub** | Forwards a message to any number of mobile/notification services (e.g. `mobile_app_*`, `gmail`, `telegram`, …). | Add a recipient block to `recipients`. |
+| **Email support** | Send the same message via SMTP email to configured email recipients. | Set `send_via: email` on a recipient and add `email_config`. |
 | **Siri messages** | Lets you trigger a Home Assistant *fire event* from an iOS Shortcut and have the app send a pre‑configured notification to selected users. | Create an iOS Shortcut → *Fire Event* → `event name = ios.lightwand-mode-change` → *Event data* contains `{"message":"food"}`. |
 | **State‑change alerts** | Sends a notification automatically whenever a sensor you care about changes value. | Add a `notify_state_change` entry with the sensor entity ID and a short message. |
 
@@ -644,19 +645,32 @@ notify_mobiles:
   module: notify_mobiles
   class: Notify_Mobiles
 
+  # ── 0️⃣ Email (SMTP) ─────────────────────────────────────
+  # Optional: include this block only if you want to send email.
+  # For Gmail you need an [app password](https://support.google.com/mail/answer/185833).
+  email_config:
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    smtp_user: "you@gmail.com"
+    smtp_password: "xxxx xxxx xxxx xxxx"
+    smtp_tls: true
+
   # ── 1️⃣ Recipients ───────────────────────────────────────
   recipients:                  # List of people (or services) that can receive notifications
-    - person: Me               # “person” is an arbitrary label – used in the code to identify who gets the message
+    - person: Me               # "person" is an arbitrary label – used in the code to identify who gets the message
+      send_via: notify         # Optional: "notify" (default) or "email"
       receiver:                # One or more notification services that belong to this person
         - mobile_app_my_phone
-      tracker: person.me       # Optional: a Person tracker entity – used to decide “when to send”
+      tracker: person.me       # Optional: a Person tracker entity – used to decide "when to send"
     - person: MyKids
       receiver:
         - mobile_app_my_first_kid
         - mobile_app_my_second_kid
-    - person: Email
+    - person: Email            # Emails don't go through notify/ entities; they use smtp.send_message
+      send_via: email
       receiver:
-        - gmail                # You can add any notification service that Home Assistant supports
+        - my_email_recipient   # add this as a recipient in Settings > Devices & services > SMTP
+      tracker: person.me
 
   # ── 2️⃣ Siri‑message blocks ───────────────────────────────────────
   siri_message:                # List of custom events that can be fired from iOS Shortcuts
@@ -675,6 +689,12 @@ notify_mobiles:
         - Email
         - Me
 ```
+
+---
+
+> **Note:** If `send_via: email` is set but `email_config` is missing or empty, the recipient is silently skipped.
+
+---
 
 ---
 

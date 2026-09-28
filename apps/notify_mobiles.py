@@ -4,7 +4,7 @@
 @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 import json
 from typing import Iterable, Union, Set
@@ -111,9 +111,25 @@ class Notify_Mobiles(ad.ADBase):
             if message != 'clear_notification':
                 service_kwargs['title'] = message_title
 
-            # 2d. Send to every configured receiver for this recipient
+            # 2d. Resolve per-recipient sender (default: notify)
+            send_via = r.get('send_via', 'notify')
+            email_cfg = self.args.get('email_config', {})
+            has_email = send_via == 'email' and email_cfg
+
+            # 2e. Send to every configured receiver for this recipient
             for receiver in r.get('receiver', []):
-                self.ADapi.call_service(f'notify/{receiver}', **service_kwargs)
+                if has_email:
+                    self.ADapi.call_service(
+                        'smtp/send_message',
+                        title=message_title,
+                        message=message,
+                        data={'html': data.get('html', '')},
+                    )
+                else:
+                    self.ADapi.call_service(
+                        f'notify/{receiver}',
+                        **service_kwargs,
+                    )
                 notified += 1
 
     def ios_event(self, event_name, data, **kwargs) -> None:
