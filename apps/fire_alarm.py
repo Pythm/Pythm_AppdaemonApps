@@ -6,7 +6,7 @@ Turns off switches and opens screens/garagedoors
 
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.0"
 
 from appdaemon import adbase as ad
 import json

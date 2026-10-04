@@ -4,7 +4,7 @@ Opening and closing of a cover entity
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from appdaemon import adbase as ad
 import json
