@@ -1,27 +1,38 @@
 """ Update Cloudflare DNS with new ip
 
+    Keeps one Cloudflare A record equal to your public IP address. The IP comes from a
+    Home Assistant sensor (ip_sensor) or, without one, from an IP service once an hour.
+
     @Pythm / https://github.com/Pythm
 """
 
 __version__ = "0.1.1"
 
-import asyncio
+import ipaddress
 import json
-import datetime
 
 from appdaemon import adbase as ad
 import aiohttp
+
+RETRY_SECONDS = 900
+RETRY_MAX = 6
+REQUEST_TIMEOUT = 20
 
 
 class Change_DNS(ad.ADBase):
 
     def initialize(self):
         self.ADapi = self.get_ad_api()
+        self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
 
-        self.public_ip:str = None
-        self.dns_ip:str = None
-        self.record_name:str = None
-        self.proxy:bool = self.args.get('enable_proxy', True)
+        self.public_ip:str | None = None
+        self.cloudflare_ip:str | None = None
+        self.record_name:str | None = None
+        self.updating:bool = False
+        self.wrong_record_type:bool = False
+        # None keeps the proxy setting that the record has in Cloudflare
+        self.proxy:bool | None = self.args.get('enable_proxy', None)
+        self.ip_check_url:str = self.args.get('ip_check_url', 'https://api.ipify.org')
 
         self.cloudflare_api_token = self.args['cloudflare_api_token']
         self.zone_id = self.args['zone_id']
@@ -33,121 +44,138 @@ class Change_DNS(ad.ADBase):
           }
         self.reqUrl = "https://api.cloudflare.com/client/v4/zones/" + str(self.zone_id) + "/dns_records/" + str(self.dns_record_id)
 
-        if 'ip_sensor' in self.args:
-            ip_sensor = self.args['ip_sensor']
-            self.ADapi.listen_state(self._ha_DNS_ip_sensor_changed, ip_sensor)
-            self.dns_ip = self.ADapi.get_state(ip_sensor)
+        self.ip_sensor = self.args.get('ip_sensor', None)
+        if self.ip_sensor is not None:
+            self.ADapi.listen_state(self._ha_DNS_ip_sensor_changed, self.ip_sensor,
+                namespace = self.HASS_namespace
+            )
         else:
-            self.ADapi.create_task(self._get_public_ip())
             self.ADapi.run_hourly(self._checkPublicIPAddress, "00:10:00")
 
-        self.ADapi.create_task(self._get_current_DNS())
+        self.ADapi.create_task(self._startup())
+
+    async def _startup(self) -> None:
+        """ Reads the record in Cloudflare and the public IP, and updates the record if they differ. """
+
+        await self._get_current_DNS()
+        if self.ip_sensor is not None:
+            # API calls inside a coroutine have to be awaited
+            self.public_ip = self._valid_ipv4(await self.ADapi.get_state(self.ip_sensor, namespace = self.HASS_namespace))
+        else:
+            self.public_ip = await self._get_public_ip()
+        await self._sync()
+
+    def _valid_ipv4(self, value) -> str | None:
+        """ Returns the value if it is an IPv4 address (the only thing an A record can hold). """
+
+        try:
+            return str(ipaddress.IPv4Address(str(value).strip()))
+        except ValueError:
+            return None
 
     def _ha_DNS_ip_sensor_changed(self, entity, attribute, old, new, kwargs) -> None:
-        if (
-            new != 'unavailable'
-            and new != 'unknown'
-            and new != self.dns_ip
-        ):
-            self.public_ip = new
-            self.ADapi.log(f"Detected new IP: {self.public_ip}") ###
-            self.ADapi.create_task(self._updateDNS())
+        if new in (None, 'unavailable', 'unknown'):
+            return
+        new_ip = self._valid_ipv4(new)
+        if new_ip is None:
+            self.ADapi.log(f"{self.name}: {entity} state '{new}' is not an IPv4 address.", level='WARNING')
+            return
+        self.public_ip = new_ip
+        self.ADapi.create_task(self._sync())
 
     def _checkPublicIPAddress(self, kwargs) -> None:
-        self.ADapi.create_task(self._get_public_ip())
+        self.ADapi.create_task(self._poll())
 
-    async def _get_public_ip(self) -> None:
-        try :
-            async with aiohttp.ClientSession() as session:
-                async with session.get("https://api.ipify.org") as response:
-                    if response.status == 200:
-                        result = await response.text()
-                    else:
-                        self.ADapi.log(f"Error {response.status}: {await response.text()}")
+    async def _poll(self) -> None:
+        public_ip = await self._get_public_ip()
+        if public_ip is not None:
+            self.public_ip = public_ip
+            await self._sync()
 
+    async def _get_public_ip(self) -> str | None:
+        try:
+            timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(self.ip_check_url) as response:
                     if 200 <= response.status < 300:
-                        result = await response.text()
-                        api_result_str:str = result
-                        
-                    else:
-                        self.ADapi.log(
-                            f"Not able to get IP from ipify. Request returned with status: {response.status}. "
-                            f"Exception: {e}",
-                            level='INFO'
-                        )
-                        api_result_str = None
+                        result = self._valid_ipv4(await response.text())
+                        if result is None:
+                            self.ADapi.log(f"{self.name}: {self.ip_check_url} did not return an IPv4 address.", level='WARNING')
+                        return result
+                    self.ADapi.log(
+                        f"{self.name}: Not able to get IP from {self.ip_check_url}. Status: {response.status}.",
+                        level='WARNING'
+                    )
         except Exception as e:
-            self.ADapi.log(
-                f"Not able to get IP from ipify. "
-                f"Exception: {e}",
-                level='INFO'
-            )
-            api_result_str = None
-
-        if api_result_str is not None:
-            self.public_ip = api_result_str
-            if (
-                api_result_str != self.dns_ip
-                and self.dns_ip is not None
-            ):
-                self.ADapi.log(
-                    f"Public IP address changed to {self.public_ip}. Updating cloudflare."
-                ) ###
-                self.ADapi.create_task(self._updateDNS())
+            self.ADapi.log(f"{self.name}: Not able to get IP from {self.ip_check_url}. Exception: {e}", level='WARNING')
+        return None
 
     async def _get_current_DNS(self) -> None:
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(self.reqUrl, headers=self.headersList) as response:
                     if 200 <= response.status < 300:
-                        api_result_str = await response.text()
-                        api_result_dict = json.loads(api_result_str)
-                        cloudflare_ip = api_result_dict['result']['content']
-                        self.record_name = api_result_dict['result']['name']
+                        result = json.loads(await response.text())['result']
+                        if result.get('type', 'A') != 'A':
+                            self.ADapi.log(
+                                f"{self.name}: dns_record_id is a {result.get('type')} record. Only A records are updated.",
+                                level='ERROR'
+                            )
+                            self.wrong_record_type = True
+                            return
+                        self.cloudflare_ip = self._valid_ipv4(result['content'])
+                        self.record_name = result['name']
                     else:
                         self.ADapi.log(
-                            f"Not able to get IP from cloudflare. Request returned with status: {response.status}. "
-                            "Exception was not provided.",
-                            level='INFO'
+                            f"{self.name}: Not able to get the record from Cloudflare. Status: {response.status}.",
+                            level='WARNING'
                         )
-                        cloudflare_ip = None
         except Exception as e:
-            self.ADapi.log(f"Not able to get IP from cloudflare. "
-                f"Exception: {e}",
-                level='INFO')
-            cloudflare_ip = None
+            self.ADapi.log(f"{self.name}: Not able to get the record from Cloudflare. Exception: {e}", level='WARNING')
 
-        if cloudflare_ip is not None:
-            self.public_ip = cloudflare_ip
-            if (
-                cloudflare_ip != self.dns_ip
-                and self.dns_ip is not None
-            ):
-                self.ADapi.create_task(self._updateDNS())
+    async def _sync(self, tries:int = 0) -> None:
+        """ Updates Cloudflare if the record is not equal to the public IP. """
 
-    async def _updateDNS(self) -> None:
+        if self.updating or self.public_ip is None or self.wrong_record_type:
+            return
+        self.updating = True
         try:
-            async with aiohttp.ClientSession() as session:
-                payload = json.dumps({
-                    "type": "A",
-                    "name": self.record_name,
-                    "content": self.public_ip,
-                    "proxied": self.proxy
-                })
-                async with session.put(self.reqUrl, headers=self.headersList, data=payload) as response:
-                    if 200 <= response.status < 300:
-                        api_result_str = await response.text()
-                        api_result_dict = json.loads(api_result_str)
-                        self.ADapi.log(f"Result from API call to update IP address: {api_result_dict['result']}") ###
-                    else:
+            if self.cloudflare_ip is None:
+                await self._get_current_DNS()
+            if self.cloudflare_ip is None or self.cloudflare_ip == self.public_ip:
+                return
+            updated = await self._updateDNS()
+        finally:
+            self.updating = False
+        if not updated and tries < RETRY_MAX:
+            await self.ADapi.run_in(self._retry_sync, RETRY_SECONDS, tries = tries + 1)
+
+    def _retry_sync(self, **kwargs) -> None:
+        self.ADapi.create_task(self._sync(kwargs['tries']))
+
+    async def _updateDNS(self) -> bool:
+        """ Changes only the content (and the proxy setting if enable_proxy is set). TTL and comment stay. """
+
+        payload:dict = {"content": self.public_ip}
+        if self.proxy is not None:
+            payload["proxied"] = self.proxy
+        try:
+            timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.patch(self.reqUrl, headers=self.headersList, json=payload) as response:
+                    body = await response.text()
+                    if 200 <= response.status < 300 and json.loads(body).get('success', True):
                         self.ADapi.log(
-                            f"Not able to update IP to cloudflare. Request returned with status: {response.status}. "
-                            "Exception was not provided.",
+                            f"{self.name}: {self.record_name} changed from {self.cloudflare_ip} to {self.public_ip} in Cloudflare.",
                             level='INFO'
                         )
+                        self.cloudflare_ip = self.public_ip
+                        return True
+                    self.ADapi.log(
+                        f"{self.name}: Not able to update {self.record_name} in Cloudflare. Status: {response.status}. {body[:200]}",
+                        level='WARNING'
+                    )
         except Exception as e:
-            self.ADapi.log(f"Not able to update IP to cloudflare. "
-                f"Exception: {e}",
-                level='INFO')
-        else:
-            self.dns_ip = self.public_ip
+            self.ADapi.log(f"{self.name}: Not able to update {self.record_name} in Cloudflare. Exception: {e}", level='WARNING')
+        return False
