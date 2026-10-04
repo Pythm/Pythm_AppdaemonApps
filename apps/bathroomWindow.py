@@ -182,6 +182,8 @@ class BathroomWindow(ad.ADBase):
             self.timer_handler = None
 
     def _notify_event(self, event_name, data, **kwargs) -> None:
+        if data.get('action') != self.turn_off_notifications:
+            return
         self.waiting_for_humidity = False
         self._cancel_timer_handler()
         self._clear_notification()
