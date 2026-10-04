@@ -9,7 +9,7 @@ __version__ = "0.2.2"
 from appdaemon import adbase as ad
 import datetime
 
-from translations_lightmodes import translations
+from mode_names import translations
 
 class HomeConnect(ad.ADBase):
 

@@ -12,7 +12,7 @@ from datetime import datetime
 import os
 from utils_apps import save_image_with_timestamp, local_path_from_target
 
-from translations_lightmodes import translations
+from mode_names import translations
 
 class GarageDoor(ad.ADBase):
 

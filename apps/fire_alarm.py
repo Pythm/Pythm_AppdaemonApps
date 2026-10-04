@@ -12,7 +12,7 @@ from appdaemon import adbase as ad
 import json
 import csv
 
-from translations_lightmodes import translations
+from mode_names import translations
 
 UNAVAIL = ('unavailable', 'unknown')
 
