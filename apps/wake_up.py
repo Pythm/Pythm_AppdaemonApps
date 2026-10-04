@@ -2,12 +2,11 @@
 
     @Pythm / https://github.com/Pythm
 """
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 from appdaemon import adbase as ad
 import datetime
 import json
-from geopy.geocoders import Nominatim
 import holidays
 
 class WakeUp(ad.ADBase):
@@ -23,31 +22,17 @@ class WakeUp(ad.ADBase):
         self.music_handler = None
         self.light_run_handler = None
 
-        # Set up holliday
-        self.country_code = None
-        if 'country_code' in self.args:
-            self.country_code = self.args['country_code']
-        elif 'latitude' in self.config and 'longitude' in self.config:
-            try:
-                geolocator = Nominatim(user_agent="ElectricalPriceCalc")
-                location = geolocator.reverse((self.config['latitude'], self.config['longitude']), language='en')
-                self.country_code = location.raw['address'].get('country_code', 'NO')
-                self.ADapi.log(f"Country code set to {self.country_code.upper()} in {self.name}", level = 'INFO')
-            except Exception as e:
-                self.ADapi.log(f"Failed to get country code from geolocation: {e}", level='ERROR')
-
+        # Set up holidays. Optional: without country_code only weekends are non-work days.
+        self.country_code = self.args.get('country_code', None)
+        self.holidays = None
         if self.country_code is not None:
-            try:
-                holiday_class = getattr(holidays, self.country_code.upper())
-                self.holidays = holiday_class(years=[datetime.date.today().year, datetime.date.today().year + 1])
-            except AttributeError:
-                self.ADapi.log(f"Could not find holidays for {self.country_code}, defaulting to Norway.", level = 'INFO')
-                self.holidays = holidays.Norway(years=[datetime.date.today().year, datetime.date.today().year + 1])
+            self._set_holidays(self.country_code)
 
         # Set up vacation
         vacation = self.args.get('vacation', 'input_boolean.vacation')
-        if self.ADapi.entity_exists(vacation, namespace=self.HASS_namespace):
-            self.away_state = self.ADapi.get_state(vacation, namespace=self.HASS_namespace) == 'on'
+        vacation_state = self.ADapi.get_state(vacation, namespace = self.HASS_namespace)
+        if vacation_state is not None:
+            self.away_state = vacation_state == 'on'
             self.ADapi.listen_state(
                 self._awayStateListen,
                 vacation,
@@ -55,39 +40,15 @@ class WakeUp(ad.ADBase):
             )
         else:
             self.away_state = False
+            if 'vacation' in self.args:
+                self.ADapi.log(f"{self.name}: vacation {vacation} was not found.", level = 'WARNING')
 
         # Set up alarms
-        if 'alarm_switch' in self.args:
-            alarm_switch = self.args['alarm_switch']
-        else:
-            alarm_switch = None
-            if self.ADapi.entity_exists('input_boolean.alarm_switch',
-                namespace = self.HASS_namespace
-            ):
-                alarm_switch = 'input_boolean.alarm_switch'
-        if alarm_switch is None:
-            self.alarm_switch = True
-        else:
-            self.alarm_switch = self.ADapi.get_state(alarm_switch, namespace = self.HASS_namespace)  == 'on'
-            self.ADapi.listen_state(self._alarmStateListen, alarm_switch,
-                namespace = self.HASS_namespace
-            )
-
-        if 'alarm_switch_non_work_day' in self.args:
-            alarm_switch_non_work_day = self.args['alarm_switch_non_work_day']
-        else:
-            alarm_switch_non_work_day = None
-            if self.ADapi.entity_exists('input_boolean.alarm_switch_non_work_day',
-                namespace = self.HASS_namespace
-            ):
-                alarm_switch_non_work_day = 'input_boolean.alarm_switch_non_work_day'
-        if alarm_switch_non_work_day is None:
-            self.alarm_switch_non_work_day = False
-        else:
-            self.alarm_switch_non_work_day = self.ADapi.get_state(alarm_switch_non_work_day, namespace = self.HASS_namespace)  == 'on'
-            self.ADapi.listen_state(self._alarm_non_work_dayStateListen, alarm_switch_non_work_day,
-                namespace = self.HASS_namespace
-            )
+        self.alarm_switch = self._setup_switch('alarm_switch', 'input_boolean.alarm_switch',
+                                               default = True, listener = self._alarmStateListen)
+        self.alarm_switch_non_work_day = self._setup_switch('alarm_switch_non_work_day',
+                                                            'input_boolean.alarm_switch_non_work_day',
+                                                            default = False, listener = self._alarm_non_work_dayStateListen)
 
         self.media_player = self.args['media_player']
         self.playlist = self.args['playlist']
@@ -98,68 +59,104 @@ class WakeUp(ad.ADBase):
         if self.wake_up_MQTTlights:
             self.mqtt = self.get_plugin_api('MQTT')
 
-        self.light_data:dict = self.args.get('light_data', {})
-        self.light_data.update(
-            {"state" : "ON"}
-        )
+        # Color, brightness and so on. A copy, so the configuration is left alone.
+        self.light_data:dict = dict(self.args.get('light_data', {}))
 
         self.light_time_offset = self.args.get('light_time_offset',0)
 
-        if 'time' in self.args: # Home Assistant input_datetime helper
-            wake_up_time = self.args['time']
-            self.ADapi.listen_state(self._set_wake_up_time, wake_up_time,
-                namespace = self.HASS_namespace,
-                duration = 5
-            )
-            timestring =  self.ADapi.get_state(wake_up_time,
-                namespace = self.HASS_namespace
-            )
-            if timestring != '00:00:00':
-                self.music_handler = self.ADapi.run_daily(self.wake_up_music, timestring)
-                if self.light_time_offset != 0:
-                    timeToAdd = datetime.timedelta(minutes = self.light_time_offset)
-                    newtime = self.ADapi.parse_datetime(timestring) + timeToAdd
-                    timestring = str(newtime.time())
-                self.light_run_handler = self.ADapi.run_daily(self.wake_up_with_lights, timestring)
+        # Home Assistant input_datetime helper with time only
+        wake_up_time = self.args['time']
+        self.ADapi.listen_state(self._set_wake_up_time, wake_up_time,
+            namespace = self.HASS_namespace,
+            duration = 5
+        )
+        self._schedule_alarm(self.ADapi.get_state(wake_up_time, namespace = self.HASS_namespace))
 
         self.conditions:list = self.args.get('conditions',[])
 
-    def _set_wake_up_time(self, entity, attribute, old, new, kwargs):
-        if self.music_handler is not None:
-            if self.ADapi.timer_running(self.music_handler):
-                try:
-                    self.ADapi.cancel_timer(self.music_handler)
-                except Exception:
-                    self.ADapi.log(f"Ikke mulig å stoppe timer for {entity}.")
-        if self.light_run_handler is not None:
-            if self.ADapi.timer_running(self.light_run_handler):
-                try:
-                    self.ADapi.cancel_timer(self.light_run_handler)
-                except Exception:
-                    self.ADapi.log(f"Ikke mulig å stoppe timer for {entity}.")
+    def _setup_switch(self, key:str, guess:str, default:bool, listener) -> bool:
+        """ Returns the state of the switch in the configuration (or of a helper with the usual name).
+            Without any switch the default is used. """
 
-        timestring =  self.ADapi.get_state(entity)
-        if timestring != '00:00:00':
-            self.music_handler = self.ADapi.run_daily(self.wake_up_music, timestring)
-            if self.light_time_offset != 0:
-                timeToAdd = datetime.timedelta(minutes = self.light_time_offset)
-                newtime = self.ADapi.parse_datetime(timestring) + timeToAdd
-                timestring = str(newtime.time())
-            self.light_run_handler = self.ADapi.run_daily(self.wake_up_with_lights, timestring)
+        entity = self.args.get(key, None)
+        if entity is None:
+            if self.ADapi.entity_exists(guess, namespace = self.HASS_namespace):
+                entity = guess
+            else:
+                return default
+        state = self.ADapi.get_state(entity, namespace = self.HASS_namespace)
+        if state is None:
+            self.ADapi.log(f"{self.name}: {key} {entity} was not found.", level = 'WARNING')
+        self.ADapi.listen_state(listener, entity, namespace = self.HASS_namespace)
+        return state == 'on'
 
-    def wake_up_music(self, kwargs):
-        """ Starts music list """
-
-        if (
-            not self.away_state and
-            (
-                (self._is_holiday(datetime.date.today()) and self.alarm_switch_non_work_day)
-                or (not self._is_holiday(datetime.date.today()) and self.alarm_switch)
+    def _set_holidays(self, country_code:str) -> None:
+        try:
+            self.holidays = holidays.country_holidays(str(country_code).upper())
+        except (NotImplementedError, KeyError, AttributeError):
+            self.ADapi.log(
+                f"{self.name}: No holidays found for country_code {country_code}. Only weekends count as non-work days.",
+                level = 'WARNING'
             )
-        ):
-            for condition in self.conditions:
+
+    def _cancel_alarm(self) -> None:
+        for handler in (self.music_handler, self.light_run_handler):
+            if handler is not None:
+                self.ADapi.cancel_timer(handler, silent = True)
+        self.music_handler = None
+        self.light_run_handler = None
+
+    def _schedule_alarm(self, timestring) -> None:
+        """ Plans the music and the lights. 00:00:00 turns the alarm off.
+            A value that is not a time (unknown, unavailable) leaves the plan as it was. """
+
+        try:
+            wake_up_time = self.ADapi.parse_time(timestring)
+        except (TypeError, ValueError, NotImplementedError):
+            if timestring not in (None, 'unknown', 'unavailable'):
+                self.ADapi.log(f"{self.name}: time '{timestring}' is not a time.", level = 'WARNING')
+            return
+
+        self._cancel_alarm()
+        if wake_up_time == datetime.time(0, 0, 0):
+            return
+        self.music_handler = self.ADapi.run_daily(self.wake_up_music, wake_up_time)
+        light_time = wake_up_time
+        if self.light_time_offset != 0:
+            timeToAdd = datetime.timedelta(minutes = self.light_time_offset)
+            light_time = (datetime.datetime.combine(datetime.date.today(), wake_up_time) + timeToAdd).time()
+        self.light_run_handler = self.ADapi.run_daily(self.wake_up_with_lights, light_time)
+
+    def _set_wake_up_time(self, entity, attribute, old, new, kwargs):
+        self._schedule_alarm(new)
+
+    def _alarm_active(self) -> bool:
+        """ Not on vacation, and the switch for the kind of day decides:
+            alarm_switch on a workday, alarm_switch_non_work_day on a holiday or weekend. """
+
+        if self.away_state:
+            return False
+        if self._is_holiday(self.ADapi.get_now().date()):
+            return self.alarm_switch_non_work_day
+        return self.alarm_switch
+
+    def _conditions_met(self) -> bool:
+        """ Every condition is Python code from the configuration. It runs with this app as self,
+            for example: self.ADapi.get_state('person.me') == 'home' """
+
+        for condition in self.conditions:
+            try:
                 if not eval(condition):
                     return False
+            except Exception as e:
+                self.ADapi.log(f"{self.name}: Condition '{condition}' failed: {e}. Not waking up.", level = 'ERROR')
+                return False
+        return True
+
+    def wake_up_music(self, **kwargs):
+        """ Starts music list """
+
+        if self._alarm_active() and self._conditions_met():
             if self.volume is not None:
                 self.ADapi.call_service('media_player/volume_set',
                     entity_id = self.media_player,
@@ -173,26 +170,19 @@ class WakeUp(ad.ADBase):
                 namespace = self.HASS_namespace
             )
 
-    def wake_up_with_lights(self, kwargs):
+    def wake_up_with_lights(self, **kwargs):
         """ Turns on lights """
 
-        if (
-            (self._is_holiday(datetime.date.today())
-            or self.alarm_switch_non_work_day)
-            and not self.away_state
-            and self.alarm_switch
-        ):
-            for condition in self.conditions:
-                if not eval(condition):
-                    return False
-
-            for light in self.wake_up_MQTTlights:
-                payload = json.dumps(self.light_data)
-                self.mqtt.mqtt_publish(
-                    topic = str(light) + "/set",
-                    payload = payload,
-                    namespace = self.MQTT_namespace
-                )
+        if self._alarm_active() and self._conditions_met():
+            if self.mqtt is not None:
+                # zigbee2mqtt wants "state": "ON" in the payload
+                payload = json.dumps({**self.light_data, "state" : "ON"})
+                for light in self.wake_up_MQTTlights:
+                    self.mqtt.mqtt_publish(
+                        topic = str(light) + "/set",
+                        payload = payload,
+                        namespace = self.MQTT_namespace
+                    )
             for light in self.wake_up_lights:
                 self.ADapi.call_service('homeassistant/turn_on',
                     entity_id = light,
@@ -210,7 +200,6 @@ class WakeUp(ad.ADBase):
         self.alarm_switch_non_work_day = new == 'on'
 
     def _is_holiday(self, date):
-        isNotWorkday:bool = date in self.holidays
-        if not isNotWorkday:
-            isNotWorkday = date.weekday() > 4
-        return isNotWorkday
+        if self.holidays is not None and date in self.holidays:
+            return True
+        return date.weekday() > 4
