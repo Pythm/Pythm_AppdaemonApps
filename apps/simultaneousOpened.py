@@ -20,7 +20,7 @@ class SimultaneousOpen(ad.ADBase):
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
 
-        self.notify_receiver = self.args.get('notify_receiver', [])
+        self.notify_receiver = self.args.get('notify_receiver', True)
         self.notify_title = self.args.get('notify_title', 'Both door and window is open')
         self.notify_message = self.args.get('notify_message', 'Close either')
 
