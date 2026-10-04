@@ -20,6 +20,7 @@ class GarageDoor(ad.ADBase):
         self.ADapi = self.get_ad_api()
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
         self.target_directory = self.args.get('target_directory', 'www/snapshots/')
+        self.snapshot_keep_days = self.args.get('snapshot_keep_days', None)
         try:
             self.local_directory = local_path_from_target(
                 self.target_directory
@@ -79,6 +80,7 @@ class GarageDoor(ad.ADBase):
                                                     local_directory=self.local_directory,
                                                     camera_entity=self.camera,
                                                     namespace=self.HASS_namespace,
+                                                    keep_days=self.snapshot_keep_days,
             )
             data.update({ 'image' : local_path })
 

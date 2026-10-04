@@ -4,7 +4,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 from appdaemon import adbase as ad
 from datetime import datetime
@@ -16,6 +16,7 @@ class Doorbell(ad.ADBase):
         self.ADapi = self.get_ad_api()
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
         self.target_directory = self.args.get('target_directory', 'www/snapshots/')
+        self.snapshot_keep_days = self.args.get('snapshot_keep_days', None)
         try:
             self.local_directory = local_path_from_target(
                 self.target_directory
@@ -62,6 +63,7 @@ class Doorbell(ad.ADBase):
                                                   local_directory=self.local_directory,
                                                   camera_entity=self.camera,
                                                   namespace=self.HASS_namespace,
+                                                  keep_days=self.snapshot_keep_days,
             )
             data = {
                 'tag' : str(self.ADapi.name),
