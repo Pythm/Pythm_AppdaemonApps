@@ -463,7 +463,7 @@ The notification is sent first, before the stream is started, so a problem with 
 
 #### end_vacation
 
-Turns off vacation switches when a person returns home, or at a planned date and time. The "return home" detection is armed after a vacation switch has been on for `arm_delay` seconds (2 hours by default), so leaving the house does not end the vacation. The first person to arrive ends it for everyone. It works for every vacation, also after a restart of AppDaemon in the middle of one.
+Turns off vacation switches when a person returns home, or at a planned date and time. The "return home" detection is armed after a vacation switch has been on for `arm_delay` seconds (one day by default), so setting the vacation, leaving, and coming back after a few minutes for something you forgot does not end it. The first person to arrive after that ends it for everyone. It works for every vacation, also after a restart or reload of AppDaemon in the middle of one: the wait is counted from when the switch last changed in Home Assistant, so a restart does not shorten it. If Home Assistant gives no time for the switch, the whole wait starts again.
 
 ```yaml
 vacation_end:
@@ -481,7 +481,7 @@ vacation_end:
 | `vacation_switch` | **Yes** | | `input_boolean` (or a list of them). All are turned off when the vacation ends. |
 | `presence` | No | none | `person` or tracker entity, or a list. Without it only `vacation_ends` is used. |
 | `vacation_ends` | No | none | `input_datetime` with date **and** time (a date alone means 00:00). Changes to it are picked up after 60 seconds. A time in the past or an empty value plans nothing. |
-| `arm_delay` | No | `7200` | Seconds a vacation switch has to be on before arrival at home ends the vacation. |
+| `arm_delay` | No | `86400` | Seconds a vacation switch has to be on before arrival at home ends the vacation (one day). Use a lower value, for example `7200`, for the earlier 2-hour behaviour. `vacation_ends` is not delayed. |
 
 If AppDaemon is down when `vacation_ends` passes, the switches are not turned off after it starts again.
 

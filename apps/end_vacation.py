@@ -2,9 +2,12 @@
 
     @Pythm / https://github.com/Pythm
 """
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from appdaemon import adbase as ad
+
+# Seconds a vacation switch has to be on before a person arriving home ends the vacation
+DEFAULT_ARM_DELAY = 86400
 
 def _as_list(value) -> list:
     """ A single entity in the configuration is treated as a list of one. """
@@ -23,10 +26,10 @@ class endVacation(ad.ADBase):
 
         self.listen_handle = {}
         self.vacation_handle = None
+        self.arm_timers = {}
         self.vacation_switch = _as_list(self.args['vacation_switch'])
         self.presence = _as_list(self.args.get('presence', []))
-        # Seconds a vacation switch has to be on before a person arriving home ends the vacation
-        self.arm_delay = int(self.args.get('arm_delay', 7200))
+        self.arm_delay = int(self.args.get('arm_delay', DEFAULT_ARM_DELAY))
 
         self.vacation_ends = self.args.get('vacation_ends', None)
         if self.vacation_ends:
@@ -36,23 +39,55 @@ class endVacation(ad.ADBase):
                                     duration = 60,
                                     namespace = self.HASS_namespace)
 
-        vacation_is_on = False
         for switch in self.vacation_switch:
             state = self.ADapi.get_state(switch, namespace = self.HASS_namespace)
             if state is None:
                 self.ADapi.log(f"{self.name}: vacation_switch {switch} was not found.", level = 'WARNING')
-            vacation_is_on = vacation_is_on or state == 'on'
             # Also when the switch is on now, so the next vacation is armed as well
             self.ADapi.listen_state(self._onVacation,
                                     switch,
                                     new = 'on',
                                     duration = self.arm_delay,
                                     namespace = self.HASS_namespace)
-        if vacation_is_on:
-            self._create_listen_for_return_home()
+            self.ADapi.listen_state(self._offVacation,
+                                    switch,
+                                    new = 'off',
+                                    namespace = self.HASS_namespace)
+            if state == 'on':
+                self._arm_after_restart(switch)
 
     def _onVacation(self, entity, attribute, old, new, kwargs) -> None:
         self._create_listen_for_return_home()
+
+    def _offVacation(self, entity, attribute, old, new, kwargs) -> None:
+        """ A switch turned off before the wait after a restart was over. """
+        self._cancel_arm_timer(entity)
+
+    def _arm_after_restart(self, switch) -> None:
+        """ The switch was already on when the app started. Wait only for what is left of
+            arm_delay, counted from when the switch last changed, so a restart or reload of
+            the app does not shorten the wait. """
+        seconds_left = self._seconds_left(switch)
+        if seconds_left <= 0:
+            self._create_listen_for_return_home()
+            return
+        self._cancel_arm_timer(switch)
+        self.arm_timers[switch] = self.ADapi.run_in(self._armTimer, seconds_left, switch = switch)
+
+    def _armTimer(self, **kwargs) -> None:
+        self.arm_timers.pop(kwargs.get('switch'), None)
+        self._create_listen_for_return_home()
+
+    def _seconds_left(self, switch) -> float:
+        """ Seconds left of arm_delay. The whole delay if Home Assistant gives no usable time. """
+        changed = self.ADapi.get_state(switch, attribute = 'last_changed', namespace = self.HASS_namespace)
+        try:
+            elapsed = (self.ADapi.get_now() - self.ADapi.convert_utc(changed)).total_seconds()
+        except (TypeError, ValueError, AttributeError, NotImplementedError):
+            return self.arm_delay
+        if elapsed < 0:
+            return self.arm_delay
+        return max(0, self.arm_delay - elapsed)
 
     def _create_listen_for_return_home(self):
         self._cancel_listen_handlers()
@@ -94,6 +129,13 @@ class endVacation(ad.ADBase):
             )
         self._cancel_listen_handlers()
         self._cancel_vacation_handle()
+        for switch in list(self.arm_timers):
+            self._cancel_arm_timer(switch)
+
+    def _cancel_arm_timer(self, switch) -> None:
+        handle = self.arm_timers.pop(switch, None)
+        if handle is not None:
+            self.ADapi.cancel_timer(handle, silent = True)
 
     def _cancel_listen_handlers(self):
         for handler in self.listen_handle.values():
