@@ -75,6 +75,10 @@ front_door_guard:
   notify_message: 'The front door has been open for 5 minutes'
 ```
 
+### Set up with an AI assistant
+
+Do not want to look up entity ids and write YAML yourself? [`LLM_GUIDE.md`](LLM_GUIDE.md) tells an AI assistant how to do it for you. A read-only script, [`tools/ha_snapshot.py`](tools/ha_snapshot.py), lists your Home Assistant entities in a local file (git ignores it), and the assistant uses that list to fill in `apps.yaml`. The guide explains how to create the access token and where to put it. The token is never typed into a chat.
+
 ## Requirements
 
 | Requirement | Needed by |

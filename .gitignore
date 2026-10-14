@@ -202,3 +202,8 @@ Thumbs.db
 /.vscode
 .vscode/
 apps/.vscode/
+
+# Local data for tools/ha_snapshot.py: Home Assistant token and entity index. Never commit.
+.local/
+ha_token*
+ha_index*
