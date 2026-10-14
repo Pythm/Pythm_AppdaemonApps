@@ -256,7 +256,6 @@ class LogEnergyUsage(ad.ADBase):
                     guestUsage += float(self.guest_usage.get(name, 0))
                     guestUsage += item_price
                     self.guest_usage[name] = guestUsage
-                    self.ADapi.log(f"Guest item_price for {name} was {round(item_price,2)} with guestUsage {round(guestUsage,2)}", level = 'INFO') ###
                 elif float(self.guest_usage.get(name, 0)) > 0:
                     # The last period of the guest. Notifies the total cost.
                     guest_slot = True

@@ -5,7 +5,7 @@ Turns on switch based on datetime input and checks if it is turned off at 15:00
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from appdaemon import adbase as ad
 import datetime
