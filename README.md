@@ -5,6 +5,7 @@ Small, single-purpose [AppDaemon](https://appdaemon.readthedocs.io/) apps for Ho
 - Tested with AppDaemon **4.5.x** in Docker, connected to Home Assistant.
 - MIT license, see [License](#license).
 - Larger apps by the same author live in their own repositories: [ad-Lightwand](https://github.com/Pythm/ad-Lightwand), [ad-ClimateCommander](https://github.com/Pythm/ad-ClimateCommander), [ad-ElectricalManagement](https://github.com/Pythm/ad-ElectricalManagement), [ElectricalPriceCalc](https://github.com/Pythm/ElectricalPriceCalc), [ad-ModeManagement](https://github.com/Pythm/ad-ModeManagement) and [ad-Weather](https://github.com/Pythm/ad-Weather).
+- 🤖 Set up with an AI assistant: [`LLM_GUIDE.md`](LLM_GUIDE.md) finds your own entity ids in Home Assistant and writes the configuration (see also the section on entity ids further down).
 
 > [!IMPORTANT]
 > These apps control real devices: doors, heaters, appliances and reactions to a smoke alarm. They are written for the author's own home and shared as-is. Read the notes of an app before you rely on it, and never treat `fire_alarm` as a certified safety system.

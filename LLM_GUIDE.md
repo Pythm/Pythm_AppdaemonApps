@@ -82,6 +82,20 @@ What is in the index, and what is not: entity ids, names, rooms, integration, de
 10. **No git actions without being asked.** Do not commit or push. `.local/` is ignored by git; if `git status` ever lists a file from it, stop and tell the user.
 11. **Do not paste the index into the chat.** Search it (see below). It is large and it describes the user's home.
 
+## Always ask the user how something is used
+
+An entity that matches is not the same as the right entity for the job. Do not decide these from names, rooms or defaults, ask the user, and wait for the answer before writing the block:
+
+- **Two sensors of one kind** (two outdoor lux or temperature sensors, two door sensors, two power meters): is the second a backup, a sensor for another side or room, or something else? The apps treat a list of sensors in one way (for example highest lux, lowest temperature, any open door), so the answer decides which app and which key gets each sensor.
+- **Who gets notifications:** which person labels go in `notify_receiver`, and whether people who are away should be notified.
+- **Apps that act on their own** (doors, heaters, chargers, the fire alarm): what exactly may they do, and should it be on from the start.
+- **Thresholds and times** that depend on the home (rain limit, lux level, delays): suggest the README default and ask.
+- **Sensors that report `unavailable` or `unknown` on purpose** (an alert app may be meant to fire when a sensor drops off): do not filter or "fix" this without asking.
+- **A sensor from a helper, car or heat pump** that looks like it fits (for example an `Outside temperature` of a heat pump): ask before using it. It is often not the sensor the user means.
+- **A second Home Assistant** (a `HASS_namespace` other than `default`): ask which entities live where.
+
+Each app's own `LLM.md` (if the repository has one) lists more questions for that app.
+
 ## Searching the index
 
 Each line is a JSON object. Fields: `entity_id`, `name`, `area` (room), `device`, `manufacturer`, `model`, `integration`, `device_class`, `unit_of_measurement`, `state_class`, `state`, `domain`, `kind` (`entity` or `notify_service`).
