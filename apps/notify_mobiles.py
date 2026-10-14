@@ -1,47 +1,50 @@
-# apps/ad/apps/notify_mobiles.py
 """Notify mobiles and set mode with MODE_CHANGE from iOS app
 
 @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
-import json
-from typing import Iterable, Union, Set
+from typing import Set
 
-from appdaemon.plugins.hass.hassapi import Hass
+from appdaemon import adbase as ad
+
+from email_template import render_email
+from mode_names import translations
 
 
-class Notify_Mobiles(Hass):
-    """AppDaemon component that forwards Home‑Assistant events to iOS devices."""
+class Notify_Mobiles(ad.ADBase):
+    """AppDaemon component that forwards Home Assistant events to mobile devices."""
 
     def initialize(self) -> None:
-        self.event_listen_str: str = 'MODE_CHANGE'
-
-        language = self.args.get('lightwand_language', 'en')
-        language_file = self.args.get(
-            'language_file', '/conf/apps/Lightwand/translations.json'
-        )
-        try:
-            with open(language_file) as lang:
-                translations = json.load(lang)
-        except FileNotFoundError:
-            self.log("Translation file not found", level='DEBUG')
-        else:
-            self.event_listen_str = translations.get(language, {}).get(
-                'MODE_CHANGE', 'MODE_CHANGE'
-            )
+        self.ADapi = self.get_ad_api()
+        self.HASS_namespace = self.args.get('HASS_namespace', 'default')
 
         self.recipients = self.args.get('recipients', [])
+        if not self.recipients:
+            self.ADapi.log(f"{self.name}: No recipients configured. All notifications will be dropped.", level='WARNING')
+        if 'email_config' in self.args:
+            self.ADapi.log(
+                f"{self.name}: email_config is not used. Set up SMTP in Home Assistant and use "
+                "send_via: email with the SMTP notify entity as receiver.",
+                level='WARNING'
+            )
+        # HTML layout for send_via: email. False sends plain text only
+        self.email_html = bool(self.args.get('email_html', True))
+        self.email_footer = bool(self.args.get('email_footer', True))
+        # Language of the e-mail footer and the lang attribute, for example 'no'
+        self.email_language = str(self.args.get('email_language', 'en'))
+
         if 'siri_message' in self.args:
             self.siri_messages = self.args.get('siri_message', [])
-            self.listen_event(self.ios_event, "ios.lightwand-mode-change")
+            ios_event_name = self.args.get('ios_event', 'ios.lightwand-mode-change')
+            self.ADapi.listen_event(self.ios_event, ios_event_name, namespace=self.HASS_namespace)
 
-        notify_state_change = self.args.get('notify_state_change', [])
-        for state_change in notify_state_change:
-            self.listen_state(
+        for state_change in self.args.get('notify_state_change', []):
+            self.ADapi.listen_state(
                 self.stateChanged,
                 state_change['sensor'],
+                namespace=state_change.get('namespace', self.HASS_namespace),
                 message=state_change,
             )
 
@@ -52,68 +55,109 @@ class Notify_Mobiles(Hass):
         ----------
         message : str
             The text that will appear in the notification. Mandatory.
+            ``clear_notification`` clears the notification with the same tag
+            on mobile_app devices and is not sent to other receivers.
         message_title : str, optional
             Title shown in the notification. Defaults to ``Home Assistant``.
         message_recipient : Union[str, Iterable[str], bool], optional
-            * ``True``  – all recipients receive the message.
-            * ``"person_name"`` – only the recipient whose ``person`` key matches.
-            * ``["person1", "person2"]`` – a whitelist.
-            Defaults to ``True``.
+            * ``True``  - all recipients receive the message (default).
+            * ``"person_name"`` - only the recipient whose ``person`` key matches.
+            * ``["person1", "person2"]`` - a whitelist.
+            * An empty list, ``None`` or ``False`` - nobody.
         also_if_not_home : bool, optional
             If ``False`` (default) and a recipient has a ``tracker`` that is not
             currently ``home`` the notification is skipped for that recipient.
         data : dict, optional
             Extra data passed to the notify service. ``clickAction`` is added
-            automatically if missing.
+            automatically if missing. ``email_level`` (``info``, ``warning`` or
+            ``alert``) sets the look of the HTML e-mail and is not passed on.
         """
-        # 1️⃣  Pull arguments with sane defaults --------------------------------
         message = kwargs.get('message')
         if not message:
-            self.log("send_notification called without a message", level='WARNING')
+            self.ADapi.log("send_notification called without a message", level='WARNING')
             return
 
         message_title = kwargs.get('message_title', 'Home Assistant')
         recipient_filter = kwargs.get('message_recipient', True)
         also_if_not_home = kwargs.get('also_if_not_home', False)
 
-        # Normalise recipient filter → set of names (empty set ⇒ everyone)
+        # Normalise recipient filter: None means everyone, otherwise a set of names
+        recipient_set: Set[str] | None
         if recipient_filter is True:
-            recipient_set: Set[str] = set()
+            recipient_set = None
+        elif not recipient_filter:
+            return
+        elif isinstance(recipient_filter, str):
+            recipient_set = {recipient_filter}
         else:
-            recipient_set = (
-                {recipient_filter}
-                if isinstance(recipient_filter, str)
-                else set(recipient_filter)
-            )
+            recipient_set = set(recipient_filter)
 
-        # Data defaults – make sure we don’t mutate the caller’s dict
-        data = kwargs.get('data', {}).copy()
+        # Make sure we do not mutate the caller's dict
+        data = dict(kwargs.get('data') or {})
         data.setdefault('clickAction', 'noAction')
+        email_level = data.pop('email_level', 'info')
+        rendered_html = None
 
-        # 2️⃣  Loop over configured recipients ---------------------------------
-        notified = 0
         for r in self.recipients:
-            # 2a. Skip recipients that are not in the whitelist
-            if recipient_set and r.get('person') not in recipient_set:
+            # Skip recipients that are not in the whitelist
+            if recipient_set is not None and r.get('person') not in recipient_set:
                 continue
 
-            # 2b. Skip if tracker is not at home (unless forced)
+            # Skip if tracker is not at home (unless forced)
             if r.get('tracker') and not also_if_not_home:
-                if self.get_state(r['tracker']) != 'home':
+                if self.ADapi.get_state(r['tracker'], namespace=self.HASS_namespace) != 'home':
                     continue
 
-            # 2c. Build the service kwargs (title only for normal messages)
-            service_kwargs = {
-                'message': message,
-                'data': data,
-            }
-            if message != 'clear_notification':
-                service_kwargs['title'] = message_title
+            receivers = r.get('receiver', [])
+            if isinstance(receivers, str):
+                receivers = [receivers]
+            send_via_email = r.get('send_via', 'notify') == 'email'
 
-            # 2d. Send to every configured receiver for this recipient
-            for receiver in r.get('receiver', []):
-                self.call_service(f'notify/{receiver}', **service_kwargs)
-                notified += 1
+            for receiver in receivers:
+                if message == 'clear_notification':
+                    # Only the Companion app understands this message
+                    if send_via_email or not str(receiver).startswith('mobile_app_'):
+                        continue
+                    self.ADapi.call_service(
+                        f'notify/{receiver}',
+                        namespace=self.HASS_namespace,
+                        message=message,
+                        data=data,
+                    )
+                elif send_via_email:
+                    # Receiver is a notify entity from the Home Assistant SMTP integration
+                    entity_id = receiver if str(receiver).startswith('notify.') else f'notify.{receiver}'
+                    email_kwargs = {key: data[key] for key in ('html', 'attachments', 'priority') if key in data}
+                    if self.email_html and 'html' not in email_kwargs:
+                        if rendered_html is None:
+                            rendered_html = self._render_email(message_title, message, email_level)
+                        if rendered_html:
+                            email_kwargs['html'] = rendered_html
+                    self.ADapi.call_service(
+                        'smtp/send_message',
+                        namespace=self.HASS_namespace,
+                        entity_id=entity_id,
+                        message=message,
+                        title=message_title,
+                        **email_kwargs,
+                    )
+                else:
+                    self.ADapi.call_service(
+                        f'notify/{receiver}',
+                        namespace=self.HASS_namespace,
+                        message=message,
+                        title=message_title,
+                        data=data,
+                    )
+
+    def _render_email(self, title, message, level) -> str:
+        """HTML part for send_via: email. An empty string sends the mail as plain text."""
+        try:
+            html, _ = render_email(title, message, level=level, footer=self.email_footer, lang=self.email_language)
+        except Exception as e:
+            self.ADapi.log(f"{self.name}: Could not build the HTML e-mail, sending plain text: {e}", level='WARNING')
+            return ''
+        return html
 
     def ios_event(self, event_name, data, **kwargs) -> None:
         """Listen for iOS events configured with ``siri_message``."""
@@ -122,21 +166,20 @@ class Notify_Mobiles(Hass):
             return
 
         for message in self.siri_messages:
-            if message_from_ios == message['message']:
-                if 'notify_receiver' in message:
-                    self.send_notification(
-                        message=message['notify_message'],
-                        message_title=message['notify_title'],
-                        message_recipient=message['notify_receiver'],
-                    )
-        self.fire_event(self.event_listen_str, mode=message_from_ios)
+            if message_from_ios == message.get('message') and 'notify_receiver' in message:
+                self.send_notification(
+                    message=message.get('notify_message', message_from_ios),
+                    message_title=message.get('notify_title', 'Home Assistant'),
+                    message_recipient=message['notify_receiver'],
+                )
+        self.ADapi.fire_event(translations.MODE_CHANGE, mode=message_from_ios, namespace=self.HASS_namespace)
 
     def stateChanged(self, entity, attribute, old, new, kwargs) -> None:
         """Listen for state changes and forward a notification."""
         message = kwargs['message']
         if 'notify_receiver' in message:
             self.send_notification(
-                message=f"{message['notify_message']} {self.get_state(entity)}",
-                message_title=message['notify_title'],
+                message=f"{message.get('notify_message', entity)} {new}",
+                message_title=message.get('notify_title', 'Home Assistant'),
                 message_recipient=message['notify_receiver'],
             )

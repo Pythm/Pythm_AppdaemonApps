@@ -4,15 +4,15 @@ Opening and closing of a cover entity
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from appdaemon import adbase as ad
-import json
-from datetime import datetime
-import os
 from utils_apps import save_image_with_timestamp, local_path_from_target
 
-from translations_lightmodes import translations
+from mode_names import translations
+
+# A change from one of these states to home is not an arrival
+NOT_AWAY_STATES = ('unavailable', 'unknown', None)
 
 class GarageDoor(ad.ADBase):
 
@@ -20,6 +20,7 @@ class GarageDoor(ad.ADBase):
         self.ADapi = self.get_ad_api()
         self.HASS_namespace:str = self.args.get('HASS_namespace', 'default')
         self.target_directory = self.args.get('target_directory', 'www/snapshots/')
+        self.snapshot_keep_days = self.args.get('snapshot_keep_days', None)
         try:
             self.local_directory = local_path_from_target(
                 self.target_directory
@@ -30,13 +31,26 @@ class GarageDoor(ad.ADBase):
 
         name_of_notify_app = self.args.get('notify_app', 'notify_mobiles')
         self.notify_app = self.ADapi.get_app(name_of_notify_app)
+        if self.notify_app is None:
+            self.ADapi.log(f"{self.name}: Could not find app '{name_of_notify_app}'. Add it to 'dependencies'. Aborting setup", level = 'ERROR')
+            return
         self.notify_receiver = self.args['notify_receiver']
 
         self.garage = self.args['garage']
 
-        auto_open_setup:dict = self.args.get('auto_open', {})
-        for item in auto_open_setup:
+        # Open the door when a person arrives home. With a switch it is armed by turning the switch on,
+        # and the switch is turned off again when the door has been opened.
+        auto_open_setup = self.args.get('auto_open', [])
+        if isinstance(auto_open_setup, dict):
+            auto_open_setup = [auto_open_setup]
+        self.auto_open:list = []
+        for configured_item in auto_open_setup:
+            if 'presence' not in configured_item:
+                self.ADapi.log(f"{self.name}: An auto_open item is missing 'presence' and is ignored: {configured_item}", level = 'ERROR')
+                continue
+            item = dict(configured_item)
             item.update({'handler' : None})
+            self.auto_open.append(item)
             if 'switch' in item:
                 self.ADapi.listen_state(self._autoOpenGarage, item['switch'],
                                         item = item,
@@ -46,25 +60,22 @@ class GarageDoor(ad.ADBase):
                     self._start_listen_to_auto_open_garagedoor(item = item)
             else:
                 self._start_listen_to_auto_open_garagedoor(item = item)
-            if 'presence' in item:
-                self.ADapi.listen_state(self._checkGarageWhenAway, item['presence'],
-                                        new = 'away',
-                                        old = 'home',
-                                        namespace = self.HASS_namespace
-                )
 
         self.close_garagedoor_action:str = 'close_garagedoor_' + str(self.garage)
         self.camera = self.args.get('camera', None)
-        self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action", namespace = self.HASS_namespace)
+        self.ADapi.listen_event(self._notify_event, "mobile_app_notification_action",
+            action = self.close_garagedoor_action,
+            namespace = self.HASS_namespace
+        )
 
         # Listens for mode events
         self.ADapi.listen_event(self.mode_event, translations.MODE_CHANGE, namespace = self.HASS_namespace)
 
     def mode_event(self, event_name, data, **kwargs) -> None:
-        """ Listens to mode events and reacts on night and away """
+        """ Listens to mode events and warns on night and away if the garage is not closed """
 
-        if data['mode'] in (translations.night):
-            if self.ADapi.get_state(self.garage, namespace = self.namespace) != 'closed':
+        if data.get('mode') in (translations.night, translations.away):
+            if self.ADapi.get_state(self.garage, namespace = self.HASS_namespace) not in ('closed', 'closing'):
                 self.send_photo_notification()
 
     def send_photo_notification(self):
@@ -79,6 +90,7 @@ class GarageDoor(ad.ADBase):
                                                     local_directory=self.local_directory,
                                                     camera_entity=self.camera,
                                                     namespace=self.HASS_namespace,
+                                                    keep_days=self.snapshot_keep_days,
             )
             data.update({ 'image' : local_path })
 
@@ -108,11 +120,8 @@ class GarageDoor(ad.ADBase):
         else:
             self._stop_listen_handler(item = item)
 
-    def _checkGarageWhenAway(self, entity, attribute, old, new, kwargs) -> None:
-        if self.ADapi.get_state(self.garage, namespace = self.namespace) != 'closed':
-            self.send_photo_notification()
-
     def _start_listen_to_auto_open_garagedoor(self, item:dict) -> None:
+        self._stop_listen_handler(item = item)
         item['handler'] = self.ADapi.listen_state(
             self._returningHome,
             item['presence'],
@@ -123,10 +132,11 @@ class GarageDoor(ad.ADBase):
 
     def _returningHome(self, entity, attribute, old, new, kwargs) -> None:
         item = kwargs['item']
-        if old != 'unavailable':
+        # Not when the tracker comes back from unavailable or unknown, for example after a restart
+        if old not in NOT_AWAY_STATES:
             self.open_garage_door()
             if 'switch' in item:
-                self.ADapi.call_service('input_boolean/turn_off',
+                self.ADapi.call_service('homeassistant/turn_off',
                     entity_id = item['switch'],
                     namespace = self.HASS_namespace
                 )
@@ -134,15 +144,9 @@ class GarageDoor(ad.ADBase):
 
     def _stop_listen_handler(self, item:dict):
         if item['handler'] is not None:
-            try:
-                self.ADapi.cancel_listen_state(item['handler'])
-            except:
-                self.ADapi.log(
-                    f"Not possible to stop listen state for {item['handler']} in Garagedoor",
-                    level = 'DEBUG'
-                )
+            self.ADapi.cancel_listen_state(item['handler'], silent = True)
             item.update({'handler' : None})
 
     def _notify_event(self, event_name, data, **kwargs) -> None:
-        if data['action'] == self.close_garagedoor_action:
+        if data.get('action') == self.close_garagedoor_action:
             self.close_garage_door()
