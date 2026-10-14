@@ -9,6 +9,7 @@ from typing import Set
 
 from appdaemon import adbase as ad
 
+from email_template import render_email
 from mode_names import translations
 
 
@@ -28,6 +29,11 @@ class Notify_Mobiles(ad.ADBase):
                 "send_via: email with the SMTP notify entity as receiver.",
                 level='WARNING'
             )
+        # HTML layout for send_via: email. False sends plain text only
+        self.email_html = bool(self.args.get('email_html', True))
+        self.email_footer = bool(self.args.get('email_footer', True))
+        # Language of the e-mail footer and the lang attribute, for example 'no'
+        self.email_language = str(self.args.get('email_language', 'en'))
 
         if 'siri_message' in self.args:
             self.siri_messages = self.args.get('siri_message', [])
@@ -63,7 +69,8 @@ class Notify_Mobiles(ad.ADBase):
             currently ``home`` the notification is skipped for that recipient.
         data : dict, optional
             Extra data passed to the notify service. ``clickAction`` is added
-            automatically if missing.
+            automatically if missing. ``email_level`` (``info``, ``warning`` or
+            ``alert``) sets the look of the HTML e-mail and is not passed on.
         """
         message = kwargs.get('message')
         if not message:
@@ -88,6 +95,8 @@ class Notify_Mobiles(ad.ADBase):
         # Make sure we do not mutate the caller's dict
         data = dict(kwargs.get('data') or {})
         data.setdefault('clickAction', 'noAction')
+        email_level = data.pop('email_level', 'info')
+        rendered_html = None
 
         for r in self.recipients:
             # Skip recipients that are not in the whitelist
@@ -119,6 +128,11 @@ class Notify_Mobiles(ad.ADBase):
                     # Receiver is a notify entity from the Home Assistant SMTP integration
                     entity_id = receiver if str(receiver).startswith('notify.') else f'notify.{receiver}'
                     email_kwargs = {key: data[key] for key in ('html', 'attachments', 'priority') if key in data}
+                    if self.email_html and 'html' not in email_kwargs:
+                        if rendered_html is None:
+                            rendered_html = self._render_email(message_title, message, email_level)
+                        if rendered_html:
+                            email_kwargs['html'] = rendered_html
                     self.ADapi.call_service(
                         'smtp/send_message',
                         namespace=self.HASS_namespace,
@@ -135,6 +149,15 @@ class Notify_Mobiles(ad.ADBase):
                         title=message_title,
                         data=data,
                     )
+
+    def _render_email(self, title, message, level) -> str:
+        """HTML part for send_via: email. An empty string sends the mail as plain text."""
+        try:
+            html, _ = render_email(title, message, level=level, footer=self.email_footer, lang=self.email_language)
+        except Exception as e:
+            self.ADapi.log(f"{self.name}: Could not build the HTML e-mail, sending plain text: {e}", level='WARNING')
+            return ''
+        return html
 
     def ios_event(self, event_name, data, **kwargs) -> None:
         """Listen for iOS events configured with ``siri_message``."""

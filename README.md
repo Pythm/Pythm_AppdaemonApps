@@ -89,7 +89,7 @@ Do not want to look up entity ids and write YAML yourself? [`LLM_GUIDE.md`](LLM_
 | `pydantic` (pip) | `simultaneousOpened` (through `ad_config.py`). Normally already installed with AppDaemon 4.x, run `pip install pydantic` if you see an import error. |
 | MQTT plugin in AppDaemon | `wake_up`, only with `wake_up_MQTTlights` |
 
-`utils_apps.py` (snapshot helper), `ad_config.py` (config model for `simultaneousOpened`) and `mode_names.py` (mode names, see [Mode names](#mode-names)) are modules, not apps. Do not add them to `apps.yaml`.
+`utils_apps.py` (snapshot helper), `email_template.py` (e-mail layout for `notify_mobiles`), `ad_config.py` (config model for `simultaneousOpened`) and `mode_names.py` (mode names, see [Mode names](#mode-names)) are modules, not apps. Do not add them to `apps.yaml`.
 
 ---
 
@@ -205,6 +205,9 @@ notify_mobiles:
 | `recipients[].receiver` | **Yes** | | List of notify service names (`mobile_app_...`). With `send_via: email`, the SMTP notify entities (`notify.my_email`). |
 | `recipients[].tracker` | No | none | `person` or `device_tracker` entity. See below. |
 | `recipients[].send_via` | No | `notify` | `email` sends with the Home Assistant `smtp.send_message` action, see Email below. |
+| `email_html` | No | `true` | Sends e-mail with an HTML layout and the plain text. `false` sends plain text only. |
+| `email_footer` | No | `true` | `false` removes the footer line from the HTML e-mail. |
+| `email_language` | No | `en` | Language of the footer line in the HTML e-mail: `en` or `no` (also sets the `lang` of the mail). |
 | `siri_message` | No | none | Each item: `message` (event payload to match). With `notify_receiver`, `notify_title` and `notify_message` all three are needed. |
 | `notify_state_change` | No | none | Each item: `sensor`, plus `notify_receiver`, `notify_title`, `notify_message` and optional `namespace`. The message is followed by the new state, also `unavailable` and `unknown`. |
 | `ios_event` | No | `ios.lightwand-mode-change` | Name of the iOS event used with `siri_message`. |
@@ -239,7 +242,7 @@ notify.send_notification(
       send_via: email
 ```
 
-The message is sent with `smtp.send_message`. Put `html`, `attachments` or `priority` in the `data` of `send_notification()` to use them. Do not put SMTP passwords in `apps.yaml`; `email_config` is not used. Older setups with a legacy `notify.<name>` SMTP service can keep it as a normal receiver without `send_via`, but Home Assistant has deprecated that service.
+The message is sent with `smtp.send_message`, as plain text and as a simple HTML layout (light and dark mode, no images). Put `email_level: warning` or `email_level: alert` in the `data` of `send_notification()` to change the colour and mark of the HTML mail; the default is `info`. Put `html`, `attachments` or `priority` in the `data` to use them; your own `html` replaces the layout. The footer of the mail credits the author of the apps and can be turned off with `email_footer: false`. Do not put SMTP passwords in `apps.yaml`; `email_config` is not used. Older setups with a legacy `notify.<name>` SMTP service can keep it as a normal receiver without `send_via`, but Home Assistant has deprecated that service.
 
 ---
 
