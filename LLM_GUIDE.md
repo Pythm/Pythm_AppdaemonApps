@@ -166,6 +166,10 @@ For each app, the keys below take Home Assistant entities. `on` on a `binary_sen
 - If an app seems to do nothing: check the log for ERROR lines, check the entity ids with `grep` in the index, and check that `notify_receiver` matches a `person:` label in `notify_mobiles`.
 - Run `tools/ha_snapshot.py` again after you add devices or rename entities. The index is a snapshot.
 
+## Finding a device's rated power (watts)
+
+Some apps need the power of a device (for example `power:` in ElectricalManagement). When the device has a power sensor, read its recorded history instead of asking: `python3 tools/ha_peak_power.py sensor.my_heater_power` (read-only, uses the same token file, prints the highest value and the on-plateau of the last 30 days). Tell the user which value you took and from which sensor. Ask the user only when there is no sensor, no history (Home Assistant keeps about 10 days by default and some sensors are excluded) or no clear plateau.
+
 ## Keeping your data out of git
 
 - Everything personal lives in `.local/`, which `.gitignore` excludes: the token, the address and the index. The script stops with a message if git does not ignore it.
