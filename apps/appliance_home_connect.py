@@ -14,6 +14,9 @@ from mode_names import translations
 # How often and how many times a program is planned again when the price app has no answer yet.
 PRICE_RETRY_SECONDS = 1800
 PRICE_RETRY_MAX = 6
+# If the appliance rejects the start (Home Connect sometimes answers BadRequest), try again.
+START_RETRY_SECONDS = 60
+START_RETRY_MAX = 3
 
 class HomeConnect(ad.ADBase):
 
@@ -129,11 +132,12 @@ class HomeConnect(ad.ADBase):
         if mode in (translations.automagical, translations.morning, translations.night, translations.away):
             self.lightmode = mode
 
-        if not self._remote_start_is_on():
-            return
+        # Remote start is checked when the program is about to start (startWashing), not here.
         if mode == translations.away and self.awaymode_calculate:
+            self.ADapi.log(f"{self.name}: Mode {mode}. Planning {self.dayprogram['program']}", level = 'INFO')
             self._scheduleWashing(self.dayprogram)
         elif mode == translations.night and self.nightmode_calculate:
+            self.ADapi.log(f"{self.name}: Mode {mode}. Planning {self.nightprogram['program']}", level = 'INFO')
             self._scheduleWashing(self.nightprogram)
 
     # ------------------------------------------------------------------
@@ -176,6 +180,7 @@ class HomeConnect(ad.ADBase):
             self.handler = self.ADapi.run_at(self.startWashing, startWashingAt,
                 program = program['program']
             )
+            self.ADapi.log(f"{self.name}: {program['program']} planned at {startWashingAt.strftime('%H:%M')}", level = 'INFO')
             self.notify_app.send_notification(
                 message = f"Starting {program['program']} at {startWashingAt.strftime('%H:%M')}",
                 message_title = "Appliances",
@@ -223,21 +228,40 @@ class HomeConnect(ad.ADBase):
         }
 
     def startWashing(self, **kwargs) -> None:
-        """ Starts program on appliance """
+        """ Starts program on appliance. Checks again a minute later and retries if the appliance did not accept it. """
 
         program = kwargs['program']
-        if self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
-            self.ADapi.log(f"{self.name}: {program} is already the active program. Not starting.", level = 'DEBUG')
+        tries = kwargs.get('tries', 0)
+        if tries > 0 and self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
+            return  # The retry is not needed: the program is active now
+        if tries == 0 and self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
+            self.ADapi.log(f"{self.name}: {program} is already the active program. Not starting.", level = 'INFO')
         elif not self._remote_start_is_on():
-            self.ADapi.log(f"{self.name}: Remote start is not on. Not starting {program}.", level = 'DEBUG')
+            self.ADapi.log(f"{self.name}: Remote start is not on. Not starting {program}.", level = 'INFO')
         elif self.away_state:
-            self.ADapi.log(f"{self.name}: Vacation is on. Not starting {program}.", level = 'DEBUG')
+            self.ADapi.log(f"{self.name}: Vacation is on. Not starting {program}.", level = 'INFO')
         else:
             self.ADapi.call_service("select/select_option",
                 entity_id = self.active_program,
                 option = program,
                 namespace = self.HASS_namespace
             )
+            if tries < START_RETRY_MAX:
+                self.ADapi.run_in(self._check_started, START_RETRY_SECONDS,
+                    program = program,
+                    tries = tries + 1
+                )
+
+    def _check_started(self, **kwargs) -> None:
+        """ The appliance sets active program when it accepted the start. If not, send it again. """
+
+        program = kwargs['program']
+        if self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
+            return
+        if not self._remote_start_is_on() or self.away_state:
+            return
+        self.ADapi.log(f"{self.name}: {program} did not start. Trying again ({kwargs['tries']}/{START_RETRY_MAX})", level = 'WARNING')
+        self.startWashing(program = program, tries = kwargs['tries'])
 
     def _resetHandler(self) -> None:
         if self.handler is not None:

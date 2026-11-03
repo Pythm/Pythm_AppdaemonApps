@@ -207,3 +207,6 @@ apps/.vscode/
 .local/
 ha_token*
 ha_index*
+
+# Local audit/test scratch files
+.claude/
