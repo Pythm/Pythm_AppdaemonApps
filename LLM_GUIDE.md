@@ -11,9 +11,22 @@ It has two parts: a short one for **you**, and rules for **the assistant**. You 
 
 1. Open this repository folder in your AI assistant.
 2. Say something like: *"Read LLM_GUIDE.md and help me set up the Pythm apps for my home. I want door reminders and a notification when the dryer is done."*
-3. When the assistant asks, create the access token (Step 1) and paste it into the file the assistant points you to (Step 2). **Never paste the token into the chat.**
+3. If the assistant has no Home Assistant MCP server it can use, create the access token (Step 1) when it asks and paste it into the file the assistant points you to (Step 2). **Never paste the token into the chat.**
 4. Answer the assistant's questions, for example which of two matching sensors is your front door.
 5. When it is done, delete the token again (last section).
+
+---
+
+## First check: does your assistant already have a Home Assistant MCP server?
+
+**Assistant:** before asking for a token, check whether you already have tools from a Home Assistant MCP server (for example the built-in *Model Context Protocol Server* integration, or a community Home Assistant MCP server). If you do, **use it instead of the token and the script**, and skip Steps 1-3:
+
+- It needs no token file, so there is nothing to keep out of git or to delete afterwards.
+- Use only **read** tools (list or search entities, read states, areas, devices). Never call a service or change a state unless the user asks for it in that message (rule 4 applies to MCP tools too).
+- Entity ids found through MCP follow rule 1: only ids the MCP server actually returned go into the YAML. If you cannot list everything (the built-in server only shows entities the user has exposed to Assist), tell the user what you could not see and ask them either to expose the entity or to fall back to Steps 1-3.
+- Do not paste large listings into the chat (rule 11).
+
+**You:** if you already use an MCP server for Home Assistant, just tell the assistant. If you do not, ignore this and continue with Step 1; the token route works with any assistant.
 
 ---
 
@@ -73,7 +86,7 @@ What is in the index, and what is not: entity ids, names, rooms, integration, de
 1. **Entity ids come from the index, never from memory.** An id you did not find in `.local/ha_index.jsonl` does not go into the YAML. If several entities match (two door sensors, a sensor and its battery), show the user a short list with name and room and ask. If nothing matches, say so. Do not make an id up.
 2. **Helpers do not exist until the user creates them.** `input_boolean`, `input_datetime`, `input_text` and `input_number` entities used by some apps are created in Settings, Devices & services, Helpers. If one is missing, tell the user exactly what to create (type and suggested name), then run the script again.
 3. **Keys come from the README.** Read the section of the app in `README.md` for keys, required/optional and defaults. Do not invent keys.
-4. **Read-only towards Home Assistant.** The token is for `tools/ha_snapshot.py` only. Do not use it for any other call, and never call a service or change a state unless the user asks for it in that message.
+4. **Read-only towards Home Assistant.** Prefer an existing Home Assistant MCP server (see "First check"), otherwise the token is for `tools/ha_snapshot.py` only. Do not use it for any other call, and never call a service or change a state unless the user asks for it in that message.
 5. **Never read, print, store or repeat the token.** Not in chat, not in `apps.yaml`, not in `secrets.yaml`, not in logs or commit messages.
 6. **Ask before editing `apps.yaml`.** Back it up first (copy to `apps.yaml.bak`), add **one app at a time**, show the user the block, and explain in one or two sentences what it will do. For apps that act on their own (`garagedoor`, `espresso_machine`, `appliance_home_connect`, `charger_controller`, `fire_alarm`) get an explicit yes.
 7. **Start with `notify_mobiles`.** Most apps need it. Every app that notifies gets `dependencies: [notify_mobiles]` and a `notify_receiver` that matches a `person` label defined in `notify_mobiles`.
@@ -81,6 +94,20 @@ What is in the index, and what is not: entity ids, names, rooms, integration, de
 9. **Validate before telling the user it is done.** Parse the YAML, check every `dependencies` name exists as an app, check every entity id exists in the index, and check that required keys from the README are present. Then ask the user to look at the AppDaemon log for ERROR lines after a reload, or help them read it.
 10. **No git actions without being asked.** Do not commit or push. `.local/` is ignored by git; if `git status` ever lists a file from it, stop and tell the user.
 11. **Do not paste the index into the chat.** Search it (see below). It is large and it describes the user's home.
+
+## Always ask the user how something is used
+
+An entity that matches is not the same as the right entity for the job. Do not decide these from names, rooms or defaults, ask the user, and wait for the answer before writing the block:
+
+- **Two sensors of one kind** (two outdoor lux or temperature sensors, two door sensors, two power meters): is the second a backup, a sensor for another side or room, or something else? The apps treat a list of sensors in one way (for example highest lux, lowest temperature, any open door), so the answer decides which app and which key gets each sensor.
+- **Who gets notifications:** which person labels go in `notify_receiver`, and whether people who are away should be notified.
+- **Apps that act on their own** (doors, heaters, chargers, the fire alarm): what exactly may they do, and should it be on from the start.
+- **Thresholds and times** that depend on the home (rain limit, lux level, delays): suggest the README default and ask.
+- **Sensors that report `unavailable` or `unknown` on purpose** (an alert app may be meant to fire when a sensor drops off): do not filter or "fix" this without asking.
+- **A sensor from a helper, car or heat pump** that looks like it fits (for example an `Outside temperature` of a heat pump): ask before using it. It is often not the sensor the user means.
+- **A second Home Assistant** (a `HASS_namespace` other than `default`): ask which entities live where.
+
+Each app's own `LLM.md` (if the repository has one) lists more questions for that app.
 
 ## Searching the index
 
@@ -151,6 +178,10 @@ For each app, the keys below take Home Assistant entities. `on` on a `binary_sen
 - Test door and safety apps while you are home, with the device in front of you.
 - If an app seems to do nothing: check the log for ERROR lines, check the entity ids with `grep` in the index, and check that `notify_receiver` matches a `person:` label in `notify_mobiles`.
 - Run `tools/ha_snapshot.py` again after you add devices or rename entities. The index is a snapshot.
+
+## Finding a device's rated power (watts)
+
+Some apps need the power of a device (for example `power:` in ElectricalManagement). When the device has a power sensor, read its recorded history instead of asking: `python3 tools/ha_peak_power.py sensor.my_heater_power` (read-only, uses the same token file, prints the highest value and the on-plateau of the last 30 days). Tell the user which value you took and from which sensor. Ask the user only when there is no sensor, no history (Home Assistant keeps about 10 days by default and some sensors are excluded) or no clear plateau.
 
 ## Keeping your data out of git
 
