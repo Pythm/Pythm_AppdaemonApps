@@ -11,9 +11,22 @@ It has two parts: a short one for **you**, and rules for **the assistant**. You 
 
 1. Open this repository folder in your AI assistant.
 2. Say something like: *"Read LLM_GUIDE.md and help me set up the Pythm apps for my home. I want door reminders and a notification when the dryer is done."*
-3. When the assistant asks, create the access token (Step 1) and paste it into the file the assistant points you to (Step 2). **Never paste the token into the chat.**
+3. If the assistant has no Home Assistant MCP server it can use, create the access token (Step 1) when it asks and paste it into the file the assistant points you to (Step 2). **Never paste the token into the chat.**
 4. Answer the assistant's questions, for example which of two matching sensors is your front door.
 5. When it is done, delete the token again (last section).
+
+---
+
+## First check: does your assistant already have a Home Assistant MCP server?
+
+**Assistant:** before asking for a token, check whether you already have tools from a Home Assistant MCP server (for example the built-in *Model Context Protocol Server* integration, or a community Home Assistant MCP server). If you do, **use it instead of the token and the script**, and skip Steps 1-3:
+
+- It needs no token file, so there is nothing to keep out of git or to delete afterwards.
+- Use only **read** tools (list or search entities, read states, areas, devices). Never call a service or change a state unless the user asks for it in that message (rule 4 applies to MCP tools too).
+- Entity ids found through MCP follow rule 1: only ids the MCP server actually returned go into the YAML. If you cannot list everything (the built-in server only shows entities the user has exposed to Assist), tell the user what you could not see and ask them either to expose the entity or to fall back to Steps 1-3.
+- Do not paste large listings into the chat (rule 11).
+
+**You:** if you already use an MCP server for Home Assistant, just tell the assistant. If you do not, ignore this and continue with Step 1; the token route works with any assistant.
 
 ---
 
@@ -73,7 +86,7 @@ What is in the index, and what is not: entity ids, names, rooms, integration, de
 1. **Entity ids come from the index, never from memory.** An id you did not find in `.local/ha_index.jsonl` does not go into the YAML. If several entities match (two door sensors, a sensor and its battery), show the user a short list with name and room and ask. If nothing matches, say so. Do not make an id up.
 2. **Helpers do not exist until the user creates them.** `input_boolean`, `input_datetime`, `input_text` and `input_number` entities used by some apps are created in Settings, Devices & services, Helpers. If one is missing, tell the user exactly what to create (type and suggested name), then run the script again.
 3. **Keys come from the README.** Read the section of the app in `README.md` for keys, required/optional and defaults. Do not invent keys.
-4. **Read-only towards Home Assistant.** The token is for `tools/ha_snapshot.py` only. Do not use it for any other call, and never call a service or change a state unless the user asks for it in that message.
+4. **Read-only towards Home Assistant.** Prefer an existing Home Assistant MCP server (see "First check"), otherwise the token is for `tools/ha_snapshot.py` only. Do not use it for any other call, and never call a service or change a state unless the user asks for it in that message.
 5. **Never read, print, store or repeat the token.** Not in chat, not in `apps.yaml`, not in `secrets.yaml`, not in logs or commit messages.
 6. **Ask before editing `apps.yaml`.** Back it up first (copy to `apps.yaml.bak`), add **one app at a time**, show the user the block, and explain in one or two sentences what it will do. For apps that act on their own (`garagedoor`, `espresso_machine`, `appliance_home_connect`, `charger_controller`, `fire_alarm`) get an explicit yes.
 7. **Start with `notify_mobiles`.** Most apps need it. Every app that notifies gets `dependencies: [notify_mobiles]` and a `notify_receiver` that matches a `person` label defined in `notify_mobiles`.
