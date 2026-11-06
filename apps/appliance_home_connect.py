@@ -4,7 +4,7 @@
     @Pythm / https://github.com/Pythm
 """
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 from appdaemon import adbase as ad
 import datetime
@@ -114,8 +114,25 @@ class HomeConnect(ad.ADBase):
         if self.ADapi.now_is_between(self.day_window_start, self.day_window_stop):
             if not self.awaymode_calculate or self.lightmode == translations.away:
                 self._scheduleWashing(self.dayprogram)
+            else:
+                self._waitingForMode(self.dayprogram, translations.away)
         elif not self.nightmode_calculate or self.lightmode == translations.night:
             self._scheduleWashing(self.nightprogram)
+        else:
+            self._waitingForMode(self.nightprogram, translations.night)
+
+    def _waitingForMode(self, program: dict, mode: str) -> None:
+        """ Remote start is registered, but the program waits for a mode. The notification
+            shows that the integration reported the remote start. """
+
+        self.ADapi.log(f"{self.name}: Remote start registered. {program['program']} waits for mode {mode}.", level = 'INFO')
+        self.notify_app.send_notification(
+            message = f"Remote start registered. {program['program']} starts when the mode is {mode}.",
+            message_title = "Appliances",
+            message_recipient = self.notify_receiver,
+            also_if_not_home = False,
+            data = self._notification_data()
+        )
 
     # ------------------------------------------------------------------
     #  Mode change listener – schedules immediately when the mode
@@ -246,11 +263,10 @@ class HomeConnect(ad.ADBase):
                 option = program,
                 namespace = self.HASS_namespace
             )
-            if tries < START_RETRY_MAX:
-                self.ADapi.run_in(self._check_started, START_RETRY_SECONDS,
-                    program = program,
-                    tries = tries + 1
-                )
+            self.ADapi.run_in(self._check_started, START_RETRY_SECONDS,
+                program = program,
+                tries = tries + 1
+            )
 
     def _check_started(self, **kwargs) -> None:
         """ The appliance sets active program when it accepted the start. If not, send it again. """
@@ -259,6 +275,16 @@ class HomeConnect(ad.ADBase):
         if self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
             return
         if not self._remote_start_is_on() or self.away_state:
+            return
+        if kwargs['tries'] > START_RETRY_MAX:
+            self.ADapi.log(f"{self.name}: {program} did not start after {START_RETRY_MAX} retries.", level = 'WARNING')
+            self.notify_app.send_notification(
+                message = f"{program} did not start. Check the appliance.",
+                message_title = "Appliances",
+                message_recipient = self.notify_receiver,
+                also_if_not_home = False,
+                data = self._notification_data()
+            )
             return
         self.ADapi.log(f"{self.name}: {program} did not start. Trying again ({kwargs['tries']}/{START_RETRY_MAX})", level = 'WARNING')
         self.startWashing(program = program, tries = kwargs['tries'])
