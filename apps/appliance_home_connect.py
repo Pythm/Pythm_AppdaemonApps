@@ -69,6 +69,7 @@ class HomeConnect(ad.ADBase):
             self.nightprogram = self.dayprogram
 
         self.handler = None
+        self.start_retry_handler = None
 
         self.ADapi.listen_state(self._remoteStartRequested, self.remote_start,
             new = 'on',
@@ -249,6 +250,8 @@ class HomeConnect(ad.ADBase):
 
         program = kwargs['program']
         tries = kwargs.get('tries', 0)
+        if tries == 0:
+            self._cancel_start_retry()  # A new start replaces a retry chain that is still running
         if tries > 0 and self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
             return  # The retry is not needed: the program is active now
         if tries == 0 and self.ADapi.get_state(self.active_program, namespace = self.HASS_namespace) == program:
@@ -263,7 +266,7 @@ class HomeConnect(ad.ADBase):
                 option = program,
                 namespace = self.HASS_namespace
             )
-            self.ADapi.run_in(self._check_started, START_RETRY_SECONDS,
+            self.start_retry_handler = self.ADapi.run_in(self._check_started, START_RETRY_SECONDS,
                 program = program,
                 tries = tries + 1
             )
@@ -289,7 +292,13 @@ class HomeConnect(ad.ADBase):
         self.ADapi.log(f"{self.name}: {program} did not start. Trying again ({kwargs['tries']}/{START_RETRY_MAX})", level = 'WARNING')
         self.startWashing(program = program, tries = kwargs['tries'])
 
+    def _cancel_start_retry(self) -> None:
+        if self.start_retry_handler is not None:
+            self.ADapi.cancel_timer(self.start_retry_handler, silent = True)
+            self.start_retry_handler = None
+
     def _resetHandler(self) -> None:
+        self._cancel_start_retry()
         if self.handler is not None:
             self.ADapi.cancel_timer(self.handler, silent = True)
             self.handler = None
